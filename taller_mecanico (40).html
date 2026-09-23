@@ -1,0 +1,1896 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Taller — Control de Servicios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef1f5;
+    --sidebar:#101a2e;
+    --sidebar-text:#c6cede;
+    --panel:#ffffff;
+    --panel-2:#f3f5f8;
+    --border:#dde2e9;
+    --text:#1c2333;
+    --muted:#6b7383;
+    --accent:#f2a01f;
+    --accent-dark:#d6890f;
+    --navy:#101a2e;
+    --ok:#2f9e63;
+    --ok-bg:#e7f6ec;
+    --warn:#e29a1a;
+    --warn-bg:#fdf1dc;
+    --danger:#e35b56;
+    --danger-bg:#fdeae9;
+    --sidebar-w:222px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  h1,h2,h3,.headline{
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:600;
+    letter-spacing:.2px;
+  }
+  .plate{
+    font-family:'IBM Plex Mono',monospace;
+    letter-spacing:1px;
+    font-weight:600;
+  }
+  a{color:var(--accent);}
+
+  /* ---------- Shell ---------- */
+  .app-shell{display:flex;min-height:100vh;}
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width:var(--sidebar-w);
+    flex:0 0 var(--sidebar-w);
+    background:var(--sidebar);
+    border-right:1px solid rgba(255,255,255,.06);
+    box-shadow:2px 0 14px rgba(0,0,0,.12);
+    position:fixed;
+    top:0;left:0;bottom:0;
+    display:flex;
+    flex-direction:column;
+    padding:22px 14px;
+  }
+  .logo{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:4px 8px 22px;
+    margin-bottom:10px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .logo .badge{
+    width:38px;height:38px;
+    border-radius:10px;
+    background:linear-gradient(155deg,var(--accent),var(--accent-dark));
+    display:flex;align-items:center;justify-content:center;
+    font-size:19px;
+    flex:0 0 auto;
+  }
+  .logo .txt h1{font-size:19px;margin:0;line-height:1.05;color:#fff;}
+  .logo .txt .sub{font-size:10.5px;color:var(--sidebar-text);letter-spacing:.3px;}
+
+  .nav{display:flex;flex-direction:column;gap:4px;}
+  .nav-btn{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    background:none;
+    border:none;
+    color:var(--sidebar-text);
+    text-align:left;
+    padding:11px 12px;
+    border-radius:9px;
+    font-family:'Inter',sans-serif;
+    font-size:14.5px;
+    font-weight:500;
+    cursor:pointer;
+    width:100%;
+  }
+  .nav-btn .ic{font-size:17px;width:20px;text-align:center;flex:0 0 auto;}
+  .nav-btn:hover{background:rgba(255,255,255,.07);color:#fff;}
+  .nav-btn.active{background:rgba(255,255,255,.09);color:#fff;box-shadow:inset 3px 0 0 var(--accent);}
+
+  /* Botón de Stock: distinto al resto, estilo botón de acción */
+  .nav-btn.nav-stock.active{background:var(--accent);color:#2c1a03;box-shadow:0 3px 10px rgba(242,160,31,.35);}
+
+  /* ---------- Submenú de Stock (subcarpetas) ---------- */
+  .nav-group{display:flex;flex-direction:column;}
+  .nav-btn .caret{margin-left:auto;font-size:11px;transition:transform .18s;}
+  .nav-group.open .nav-btn .caret{transform:rotate(90deg);}
+  .nav-sub{display:none;flex-direction:column;gap:2px;margin:4px 0 2px 14px;padding-left:10px;border-left:1px solid rgba(255,255,255,.14);}
+  .nav-group.open .nav-sub{display:flex;}
+  .nav-sub-btn{
+    display:flex;align-items:center;gap:9px;
+    background:none;border:none;color:var(--sidebar-text);
+    text-align:left;padding:8px 10px;border-radius:8px;
+    font-family:'Inter',sans-serif;font-size:13.5px;font-weight:500;cursor:pointer;width:100%;
+  }
+  .nav-sub-btn:hover{background:rgba(255,255,255,.07);color:#fff;}
+  .nav-sub-btn.active{background:rgba(255,255,255,.1);color:#fff;}
+  .nav-sub-btn .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+  .nav-sub-btn .dot.amarillo{background:#f2a01f;}
+  .nav-sub-btn .dot.rojo{background:#d64541;}
+  .nav-sub-btn .dot.verde{background:#2f9e63;}
+
+  .sidebar-foot{margin-top:auto;padding:10px 8px 0;color:var(--sidebar-text);font-size:11px;border-top:1px solid rgba(255,255,255,.08);padding-top:14px;opacity:.65;}
+
+  /* ---------- Main ---------- */
+  .main{
+    margin-left:var(--sidebar-w);
+    flex:1;
+    min-width:0;
+    padding:28px 30px 60px;
+  }
+  .page{display:none;}
+  .page.active{display:block;}
+  .page-head{margin-bottom:22px;}
+  .page-head h2{font-size:26px;margin:0 0 4px;}
+  .page-head .desc{color:var(--muted);font-size:13.5px;}
+  .reg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+  .reg-head .btn{flex:0 0 auto;white-space:nowrap;margin-top:2px;}
+
+  /* ---------- Hero: ORD CAR SERVICE ---------- */
+  .ord-hero{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    background:linear-gradient(120deg,var(--navy) 0%,#1c2c4d 100%);
+    border-radius:14px;padding:14px 22px;margin-bottom:18px;position:relative;overflow:hidden;
+  }
+  .ord-hero::before{
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(300px circle at 85% 30%,rgba(242,160,31,.16),transparent 70%);
+    pointer-events:none;
+  }
+  .ord-hero-text{position:relative;z-index:1;min-width:180px;}
+  .ord-hero-text h1{
+    font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:21px;letter-spacing:1px;
+    margin:0;color:#fff;
+  }
+  .ord-hero-text .desc{color:#c6cede;font-size:13.5px;max-width:420px;margin-top:4px;}
+
+  .ord-hero-stage{
+    position:relative;z-index:1;width:66px;height:66px;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+    perspective:280px;
+  }
+  .ord-hero-ring{
+    position:absolute;inset:0;border-radius:50%;
+    border:1.5px dashed rgba(242,160,31,.55);
+    animation:ordRingSpin 7s linear infinite;
+  }
+  .ord-hero-glow{
+    position:absolute;inset:9px;border-radius:50%;
+    background:radial-gradient(circle,rgba(242,160,31,.4),transparent 72%);
+    filter:blur(2px);animation:ordGlowPulse 2.4s ease-in-out infinite;
+  }
+  .ord-hero-car{
+    position:relative;width:50px;height:40px;
+    transform-style:preserve-3d;animation:ordCarSpin 5s linear infinite;
+    filter:drop-shadow(0 3px 4px rgba(0,0,0,.4));
+  }
+  .ord-hero-car svg{width:100%;height:100%;display:block;}
+  @keyframes ordCarSpin{
+    from{transform:rotateY(0deg);}
+    to{transform:rotateY(360deg);}
+  }
+  @keyframes ordRingSpin{
+    from{transform:rotate(0deg);}
+    to{transform:rotate(360deg);}
+  }
+  @keyframes ordGlowPulse{
+    0%,100%{opacity:.6;}
+    50%{opacity:1;}
+  }
+  @media (max-width:560px){
+    .ord-hero{padding:12px 16px;}
+    .ord-hero-text h1{font-size:18px;}
+    .ord-hero-stage{width:52px;height:52px;}
+    .ord-hero-car{width:40px;height:32px;}
+  }
+
+  /* ---------- Search ---------- */
+  .search-wrap{position:relative;max-width:460px;margin-top:16px;}
+  .search-box{
+    display:flex;align-items:center;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 14px;gap:10px;
+  }
+  .search-box:focus-within{border-color:var(--accent);}
+  .search-box svg{flex:0 0 auto;opacity:.7;}
+  .search-box input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:15px;font-family:'Inter',sans-serif;}
+  .search-box input::placeholder{color:var(--muted);}
+  .search-results{
+    position:absolute;top:calc(100% + 6px);left:0;right:0;
+    background:var(--panel-2);border:1px solid var(--border);border-radius:10px;
+    overflow:hidden;z-index:20;box-shadow:0 12px 28px rgba(0,0,0,.35);
+  }
+  .search-results button{
+    width:100%;text-align:left;background:none;border:none;color:var(--text);
+    padding:11px 14px;font-family:'Inter',sans-serif;font-size:14px;cursor:pointer;
+    display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--border);
+  }
+  .search-results button:last-child{border-bottom:none;}
+  .search-results button:hover{background:rgba(232,163,61,.12);}
+  .search-results .sr-plate{color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:13px;}
+  .search-empty{padding:12px 14px;color:var(--muted);font-size:13px;}
+
+  /* ---------- Dashboard ---------- */
+  .dash{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .dash .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;box-shadow:0 2px 10px rgba(16,26,46,.07);}
+  .dash .card .n{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;line-height:1;}
+  .dash .card .l{color:var(--muted);font-size:12.5px;margin-top:6px;}
+  .dash .card.danger .n{color:var(--danger);}
+  .dash .card.warn .n{color:var(--warn);}
+  .dash .card.ok .n{color:var(--ok);}
+  .dash .card.info .n{color:#4ea1d3;}
+  @media (max-width:900px){ .dash{grid-template-columns:repeat(2,1fr);} }
+
+  .dash.mini{grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+  .dash.mini .card{font-family:inherit;text-align:left;cursor:pointer;padding:10px 14px;transition:box-shadow .15s,border-color .15s;}
+  .dash.mini .card .n{font-size:22px;}
+  .dash.mini .card .l{margin-top:3px;}
+  .dash.mini .card.danger{border-color:rgba(214,69,65,.35);}
+  .dash.mini .card.warn{border-color:rgba(242,160,31,.35);}
+  .dash.mini .card.ok{border-color:rgba(47,158,99,.35);}
+  .dash.mini .card.active.danger{box-shadow:0 0 0 2px var(--danger) inset;}
+  .dash.mini .card.active.warn{box-shadow:0 0 0 2px var(--warn) inset;}
+  .dash.mini .card.active.ok{box-shadow:0 0 0 2px var(--ok) inset;}
+  @media (max-width:900px){ .dash.mini{grid-template-columns:repeat(3,1fr);} }
+
+  /* ---------- Stock: gráficos ---------- */
+  .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+  @media (max-width:900px){ .charts-row{grid-template-columns:1fr;} }
+  .barlist{display:flex;flex-direction:column;gap:11px;}
+  .barlist .brow{display:flex;align-items:center;gap:10px;}
+  .barlist .brow .blabel{
+    width:96px;flex:0 0 96px;font-size:12px;color:var(--muted);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;
+  }
+  .barlist .brow .btrack{flex:1;background:var(--panel-2);border-radius:6px;height:18px;overflow:hidden;}
+  .barlist .brow .bfill{height:100%;border-radius:6px;min-width:3px;transition:width .35s ease;}
+  .barlist .brow .bval{
+    width:92px;flex:0 0 92px;text-align:right;font-size:12px;font-weight:600;
+    font-family:'IBM Plex Mono',monospace;white-space:nowrap;
+  }
+
+  /* Segmentador de categoría */
+  .chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+  .chip{
+    background:var(--panel);border:1px solid var(--border);color:var(--text);
+    padding:8px 16px;border-radius:100px;font-size:13px;font-weight:600;cursor:pointer;
+    font-family:'Inter',sans-serif;white-space:nowrap;transition:all .15s;
+  }
+  .chip:hover{border-color:var(--accent);}
+  .chip.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .chip.active.c-repuesto{background:#f2a01f;color:#211703;border-color:#f2a01f;}
+  .chip.active.c-filtro{background:#d64541;color:#fff;border-color:#d64541;}
+  .chip.active.c-bebidas{background:#2f9e63;color:#fff;border-color:#2f9e63;}
+
+  /* KPI grandes con icono */
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  @media (max-width:900px){ .kpi-row{grid-template-columns:repeat(2,1fr);} }
+  .kpi-card{
+    background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 18px;
+    box-shadow:0 2px 10px rgba(16,26,46,.07);display:flex;align-items:center;gap:13px;
+  }
+  .kpi-card .ic{
+    width:42px;height:42px;flex:0 0 42px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    font-size:19px;
+  }
+  .kpi-card.ok .ic{background:var(--ok-bg);}
+  .kpi-card.info .ic{background:#e6f2fa;}
+  .kpi-card.warn .ic{background:var(--warn-bg);}
+  .kpi-card.danger .ic{background:var(--danger-bg);}
+  .kpi-card .n{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;line-height:1.05;}
+  .kpi-card .l{color:var(--muted);font-size:11.5px;margin-top:2px;}
+
+  /* Actividad diaria (entradas vs salidas) */
+  .actividad-legend{display:flex;gap:18px;margin-bottom:14px;font-size:12.5px;color:var(--muted);}
+  .actividad-legend .dot{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:6px;vertical-align:1px;}
+  .actividad-chart{display:flex;align-items:flex-end;gap:16px;height:160px;padding:6px 4px 0;overflow-x:auto;}
+  .actividad-col{display:flex;flex-direction:column;align-items:center;gap:7px;flex:0 0 auto;}
+  .actividad-bars{display:flex;align-items:flex-end;gap:4px;height:120px;}
+  .actividad-bars .bar{width:15px;border-radius:4px 4px 2px 2px;min-height:3px;position:relative;}
+  .actividad-bars .bar.entrada{background:linear-gradient(180deg,#3cb377,#25804f);}
+  .actividad-bars .bar.salida{background:linear-gradient(180deg,#e5716c,#c94742);}
+  .actividad-col .lbl{font-size:10.5px;color:var(--muted);white-space:nowrap;}
+
+  /* Donut de categorías */
+  .donut-wrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
+  .donut-legend{display:flex;flex-direction:column;gap:10px;flex:1;min-width:150px;}
+  .donut-legend .drow{display:flex;align-items:center;gap:9px;font-size:13px;}
+  .donut-legend .dot{width:11px;height:11px;border-radius:4px;flex:0 0 auto;}
+  .donut-legend .dname{flex:1;color:var(--text);font-weight:600;}
+  .donut-legend .dval{color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:12px;}
+
+  /* Stock bajo */
+  .lowstock-list{display:flex;flex-direction:column;gap:8px;}
+  .lowstock-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:10px 12px;background:var(--panel-2);border-radius:9px;font-size:13px;
+  }
+  .lowstock-row .li-name{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lowstock-row .li-cant{
+    font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:12.5px;
+    padding:3px 10px;border-radius:100px;white-space:nowrap;
+  }
+  .lowstock-row .li-cant.crit{background:var(--danger-bg);color:var(--danger);}
+  .lowstock-row .li-cant.warn{background:var(--warn-bg);color:var(--warn);}
+  .lowstock-row .li-cant.ok{background:var(--ok-bg);color:var(--ok);}
+
+
+  .dash-list{margin-top:26px;}
+  .dash-list h3{font-size:18px;margin:0 0 12px;}
+
+  /* ---------- Panels / forms ---------- */
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(16,26,46,.07);}
+  .panel h2{font-size:22px;margin:0 0 4px;}
+  .panel .desc{color:var(--muted);font-size:13px;margin-bottom:16px;}
+  .form-narrow{max-width:420px;}
+
+  .mode-banner{
+    background:var(--panel-2);border:1px solid var(--accent);border-radius:10px;
+    padding:10px 12px;margin-bottom:16px;font-size:13px;
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+  }
+  .mode-banner .who .plate{color:var(--accent);}
+  .mode-banner button{background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif;white-space:nowrap;}
+
+  label{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 6px;}
+  label:first-of-type{margin-top:0;}
+  input,textarea{
+    width:100%;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;
+    padding:10px 11px;color:var(--text);font-family:'Inter',sans-serif;font-size:14.5px;outline:none;
+  }
+  input:focus,textarea:focus{border-color:var(--accent);}
+  input:disabled{color:var(--muted);opacity:.85;cursor:not-allowed;}
+  input.plate-input{font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:1px;}
+  textarea{resize:vertical;min-height:70px;font-family:'Inter',sans-serif;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:9px;
+    padding:11px 18px;font-family:'Inter',sans-serif;font-weight:600;font-size:14.5px;cursor:pointer;
+  }
+  .btn-primary{background:var(--accent);color:#211703;}
+  .btn-primary:hover{background:var(--accent-dark);}
+  .btn-primary.full{width:100%;margin-top:18px;}
+  /* ---------- Botones por categoría de stock ---------- */
+  .stock-add-group{display:flex;gap:8px;flex-wrap:wrap;}
+  .btn-cat{color:#fff;border:none;}
+  .btn-cat.amarillo{background:#f2a01f;color:#211703;}
+  .btn-cat.amarillo:hover{background:#d6890f;}
+  .btn-cat.rojo{background:#d64541;}
+  .btn-cat.rojo:hover{background:#b9332f;}
+  .btn-cat.verde{background:#2f9e63;}
+  .btn-cat.verde:hover{background:#25804f;}
+  .btn-cat.full{width:100%;margin-top:18px;}
+  h2.cat-amarillo, .stock-card .sc-marca.cat-amarillo{color:#c07a08;}
+  h2.cat-rojo, .stock-card .sc-marca.cat-rojo{color:#d64541;}
+  h2.cat-verde, .stock-card .sc-marca.cat-verde{color:#2f9e63;}
+  .btn-ghost{background:none;border:1px solid var(--border);color:var(--text);}
+  .btn-ghost:hover{border-color:var(--accent);}
+  .btn-icon{
+    background:var(--panel-2);border:1px solid var(--border);color:var(--text);
+    width:34px;height:34px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+  }
+  .btn-icon:hover{border-color:var(--accent);}
+  .btn-icon.danger:hover{border-color:var(--danger);color:var(--danger);}
+  .btn-icon.descontar:hover{border-color:var(--warn);color:var(--warn);}
+
+  /* ---------- Foto de ítem (stock) ---------- */
+  .foto-wrap{display:flex;align-items:center;gap:14px;margin-bottom:4px;}
+  .foto-preview{
+    width:76px;height:76px;flex:0 0 auto;border-radius:12px;overflow:hidden;
+    background:var(--panel-2);border:1.5px dashed var(--border);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .foto-preview img{width:100%;height:100%;object-fit:cover;display:block;}
+  .foto-preview-ic{font-size:24px;opacity:.5;}
+  .foto-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .foto-btn{padding:8px 13px;font-size:13px;cursor:pointer;}
+  .foto-btn .ic{font-size:14px;}
+
+  /* ---------- Stock: fichas tipo catálogo ---------- */
+  .stock-grid{display:flex;flex-direction:column;gap:0;margin-top:6px;}
+  .stock-card{
+    position:relative;
+    display:flex;gap:18px;
+    padding:20px 4px;
+    border-bottom:1px solid var(--border);
+  }
+  .stock-card:first-child{padding-top:6px;}
+  .stock-card .sc-photo{
+    width:150px;height:108px;flex:0 0 150px;border-radius:8px;overflow:hidden;
+    background:var(--panel-2);border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .stock-card .sc-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .stock-card .sc-photo .sc-noimg{font-size:30px;opacity:.3;}
+  .stock-card .sc-body{flex:1;min-width:0;padding-right:118px;}
+  .stock-card .sc-marca{
+    font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;
+    letter-spacing:.6px;color:var(--navy);text-transform:uppercase;margin-bottom:2px;
+  }
+  .stock-card .sc-nombre{font-weight:700;font-size:17px;line-height:1.3;margin-bottom:10px;}
+  .stock-card .sc-specs{display:grid;grid-template-columns:1fr 1fr;gap:5px 18px;font-size:12.5px;}
+  .stock-card .sc-specs .sk{color:var(--muted);font-weight:600;}
+  .stock-card .sc-specs .sv{color:var(--text);}
+  .stock-card .sc-desc{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.4;}
+  .stock-card .sc-precio{
+    position:absolute;top:20px;right:4px;
+    background:var(--accent);color:#241503;font-family:'Barlow Condensed',sans-serif;font-weight:700;
+    font-size:17px;padding:7px 14px;border-radius:6px;white-space:nowrap;
+  }
+  .stock-card .sc-actions{position:absolute;bottom:18px;right:4px;display:flex;gap:8px;}
+  @media (max-width:640px){
+    .stock-card{flex-direction:column;}
+    .stock-card .sc-photo{width:100%;flex-basis:auto;height:160px;}
+    .stock-card .sc-body{padding-right:0;}
+    .stock-card .sc-precio{position:static;display:inline-block;margin-bottom:8px;}
+    .stock-card .sc-actions{position:static;margin-top:10px;}
+  }
+
+  /* ---------- Tables ---------- */
+  .table-panel{margin-top:20px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{
+    text-align:left;color:var(--muted);font-weight:500;font-size:11.5px;text-transform:uppercase;
+    letter-spacing:.5px;padding:0 10px 10px;border-bottom:1px solid var(--border);
+  }
+  tbody td{padding:12px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+  tbody tr:last-child td{border-bottom:none;}
+  tfoot th{padding:12px 10px;text-align:left;border-top:2px solid var(--border);color:var(--text);font-size:13.5px;background:var(--panel-2);}
+  .cliente-nombre{font-weight:600;}
+  .reg-thumb{width:42px;height:42px;border-radius:8px;object-fit:cover;flex:0 0 auto;border:1px solid var(--border);}
+  .reg-thumb-empty{display:flex;align-items:center;justify-content:center;background:var(--panel-2);font-size:16px;opacity:.5;}
+  .cliente-dni{color:var(--muted);font-size:12px;}
+  .desc-cell{max-width:230px;color:var(--text);}
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:100px;
+    font-size:12px;font-weight:600;white-space:nowrap;
+  }
+  .badge.ok{background:var(--ok-bg);color:var(--ok);}
+  .badge.warn{background:var(--warn-bg);color:var(--warn);}
+  .badge.danger{background:var(--danger-bg);color:var(--danger);}
+  .badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .fecha-limite{color:var(--muted);font-size:12px;margin-top:3px;}
+  .monto{font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  .actions-cell{display:flex;gap:8px;}
+  .empty-state{color:var(--muted);text-align:center;padding:40px 10px;font-size:14px;}
+
+  /* ---------- Modal / Boleta ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(10,11,12,.6);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .overlay.open{display:flex;}
+  .factura{background:#ffffff;color:#1c2333;width:100%;max-width:640px;border-radius:14px;padding:34px 36px 26px;font-family:'Inter',sans-serif;text-align:left;}
+  .factura-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;border-bottom:4px solid #f2a01f;padding-bottom:18px;margin-bottom:20px;}
+  .factura-brand h1{font-family:'Barlow Condensed',sans-serif;font-size:36px;color:#f2a01f;margin:0;line-height:.95;letter-spacing:.3px;}
+  .factura-brand .sub{font-size:12px;color:#6b7383;margin-top:4px;font-weight:600;letter-spacing:.3px;}
+  .factura-brand .datos{font-size:11.5px;color:#9096a3;margin-top:10px;line-height:1.6;}
+  .factura-meta{text-align:right;flex:0 0 auto;}
+  .factura-meta .tipo{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#101a2e;text-transform:uppercase;}
+  .factura-meta .num{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:15px;color:#f2a01f;margin-top:2px;}
+  .factura-meta .row{font-size:12px;color:#6b7383;margin-top:8px;}
+  .factura-meta .row span{color:#1c2333;font-weight:600;}
+  .factura-cliente{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;font-size:13px;margin-bottom:22px;background:var(--panel-2);border-radius:10px;padding:14px 16px;}
+  .factura-cliente .k{color:#6b7383;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;margin-top:6px;}
+  .factura-cliente .v{font-weight:600;}
+  .factura table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:4px;}
+  .factura th{background:#101a2e;color:#fff;text-align:left;padding:10px 12px;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px;}
+  .factura th.num,.factura td.num{text-align:right;}
+  .factura td{padding:12px;border-bottom:1px solid #eceff3;}
+  .factura .totales{margin-left:auto;width:230px;margin-top:10px;}
+  .factura .totales .line{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:#6b7383;}
+  .factura .totales .total{display:flex;justify-content:space-between;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:24px;color:#101a2e;border-top:2px solid #101a2e;margin-top:6px;padding-top:8px;}
+  .factura-footer{text-align:center;color:#9096a3;font-size:11.5px;margin-top:24px;line-height:1.6;}
+  .factura-actions{display:flex;gap:10px;margin-top:22px;}
+  .factura-actions .btn{flex:1;margin-top:0;}
+
+  /* ---------- Volante (flyer) ---------- */
+  .volante-box{background:#0a0e1a;border-radius:14px;padding:14px;text-align:center;}
+  .volante-box img{max-width:100%;border-radius:8px;display:block;}
+  .volante-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+  .volante-actions .btn{flex:1 1 auto;margin-top:0;min-width:140px;}
+  .btn-whatsapp{background:#25D366;color:#fff;}
+  .btn-whatsapp:hover{background:#1ebc59;}
+  .btn-icon.whatsapp{color:#25D366;}
+  .btn-icon.whatsapp:hover{border-color:#25D366;}
+
+  @media print{
+    body *{visibility:hidden;}
+    .factura,.factura *{visibility:visible;}
+    .overlay{position:absolute;background:none;padding:0;}
+    .factura{position:absolute;left:0;top:0;box-shadow:none;}
+    .factura-actions{display:none;}
+  }
+
+  .modal-box{
+    position:relative;background:var(--panel);color:var(--text);width:100%;max-width:460px;
+    border-radius:14px;padding:26px 22px 22px;max-height:90vh;overflow-y:auto;
+    box-shadow:0 20px 50px rgba(0,0,0,.35);
+  }
+  .modal-box h2{font-size:22px;margin:0 0 4px;}
+  .modal-box .desc{color:var(--muted);font-size:13px;margin-bottom:16px;}
+  .modal-close{
+    position:absolute;top:14px;right:14px;background:var(--panel-2);border:1px solid var(--border);
+    width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;color:var(--text);font-size:15px;
+  }
+  .modal-close:hover{border-color:var(--danger);color:var(--danger);}
+
+  @media (max-width:780px){
+    :root{--sidebar-w:0px;}
+    .sidebar{
+      position:fixed;top:0;left:0;right:0;bottom:auto;width:100%;height:auto;
+      flex-direction:row;align-items:center;padding:10px 12px;overflow-x:auto;
+    }
+    .logo{border-bottom:none;padding:0 10px 0 0;margin:0;border-right:1px solid rgba(255,255,255,.1);}
+    .logo .txt{display:none;}
+    .nav{flex-direction:row;}
+    .sidebar-foot{display:none;}
+    .main{margin-left:0;margin-top:64px;padding:20px 16px 50px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="logo" id="logoHome" title="Ir al inicio" style="cursor:pointer;">
+      <div class="badge">🔧</div>
+      <div class="txt">
+        <h1>Taller</h1>
+        <div class="sub">CONTROL DE SERVICIOS</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active" data-page="nuevo"><span class="ic">📋</span>Registro</button>
+      <button class="nav-btn" data-page="bd"><span class="ic">🗄️</span>BD</button>
+      <div class="nav-group" id="navStockGroup">
+        <button class="nav-btn nav-stock" data-page="stock-graficos"><span class="ic">📦</span>Stock<span class="caret">▶</span></button>
+        <div class="nav-sub">
+          <button class="nav-sub-btn" data-subcat="repuesto"><span class="dot amarillo"></span>Repuesto</button>
+          <button class="nav-sub-btn" data-subcat="filtro"><span class="dot rojo"></span>Filtros</button>
+          <button class="nav-sub-btn" data-subcat="bebidas"><span class="dot verde"></span>Bebidas</button>
+        </div>
+      </div>
+      <button class="nav-btn" data-page="descuentos"><span class="ic">💸</span>Descuentos</button>
+    </nav>
+    <div class="sidebar-foot">Datos guardados en este navegador.</div>
+  </aside>
+
+  <div class="main">
+
+    <!-- ============ DASHBOARD ============ -->
+    <!-- ============ NUEVO REGISTRO ============ -->
+    <section class="page active" id="page-nuevo">
+      <div class="page-head">
+        <div class="ord-hero">
+          <div class="ord-hero-text">
+            <h1>ORD CAR SERVICE</h1>
+          </div>
+          <div class="ord-hero-stage" aria-hidden="true">
+            <div class="ord-hero-ring"></div>
+            <div class="ord-hero-glow"></div>
+            <div class="ord-hero-car">
+              <svg viewBox="0 0 120 96" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="ordCarBody" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#f7b23d"/>
+                    <stop offset="55%" stop-color="#f2a01f"/>
+                    <stop offset="100%" stop-color="#c9581f"/>
+                  </linearGradient>
+                </defs>
+                <ellipse cx="60" cy="90" rx="40" ry="5" fill="#000" opacity=".2"/>
+                <rect x="4" y="52" width="11" height="24" rx="5" fill="#12172a"/>
+                <rect x="105" y="52" width="11" height="24" rx="5" fill="#12172a"/>
+                <path d="M18,84 C15,60 17,34 28,20 C35,10 85,10 92,20 C103,34 105,60 102,84 C102,89 92,92 60,92 C28,92 18,89 18,84 Z" fill="url(#ordCarBody)"/>
+                <path d="M28,20 C35,10 85,10 92,20 C97,27 99,33 100,40 L20,40 C21,33 23,27 28,20 Z" fill="#ffd27a" opacity=".5"/>
+                <path d="M32,19 C38,11 82,11 88,19 C91,24 92,29 92,34 L28,34 C28,29 29,24 32,19 Z" fill="#101a2e" opacity=".92"/>
+                <rect x="55" y="16" width="10" height="5" rx="2" fill="#0d1526" opacity=".7"/>
+                <rect x="10" y="40" width="10" height="8" rx="3" fill="#0d1526"/>
+                <rect x="100" y="40" width="10" height="8" rx="3" fill="#0d1526"/>
+                <ellipse cx="30" cy="46" rx="9" ry="7" fill="#fff3d6"/>
+                <ellipse cx="90" cy="46" rx="9" ry="7" fill="#fff3d6"/>
+                <ellipse cx="30" cy="46" rx="4" ry="3" fill="#f2a01f" opacity=".6"/>
+                <ellipse cx="90" cy="46" rx="4" ry="3" fill="#f2a01f" opacity=".6"/>
+                <rect x="42" y="60" width="36" height="12" rx="4" fill="#101a2e" opacity=".88"/>
+                <rect x="47" y="63" width="26" height="2" fill="#f2a01f" opacity=".6"/>
+                <rect x="47" y="67" width="26" height="2" fill="#f2a01f" opacity=".6"/>
+                <circle cx="60" cy="52" r="5.5" fill="#101a2e"/>
+                <circle cx="60" cy="52" r="3" fill="#f2a01f"/>
+                <rect x="16" y="78" width="88" height="10" rx="5" fill="#0d1526" opacity=".85"/>
+                <rect x="24" y="80" width="18" height="3" rx="1.5" fill="#ff5a4d"/>
+                <rect x="78" y="80" width="18" height="3" rx="1.5" fill="#ff5a4d"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="search-wrap">
+          <div class="search-box">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="searchInput" type="text" placeholder="Buscar por placa, apellidos o nombres…" autocomplete="off">
+          </div>
+          <div id="searchResults" class="search-results" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div class="panel form-narrow">
+        <h2 id="formTitle">Datos del servicio</h2>
+        <div class="desc">Se guarda con la fecha de hoy automáticamente.</div>
+
+        <div id="modeBanner" class="mode-banner" style="display:none;">
+          <div class="who">Servicio para <strong id="modeName"></strong> · <span class="plate" id="modePlate"></span></div>
+          <button id="btnResetMode" type="button">Cambiar cliente</button>
+        </div>
+
+        <form id="regForm">
+          <label for="regFotoCamara">Foto del vehículo (ingreso)</label>
+          <div class="foto-wrap">
+            <div class="foto-preview" id="regFotoPreview">
+              <span class="foto-preview-ic">📷</span>
+            </div>
+            <div class="foto-actions">
+              <label class="btn btn-ghost foto-btn" for="regFotoCamara">
+                <span class="ic">📸</span> Tomar foto
+              </label>
+              <input type="file" id="regFotoCamara" accept="image/*" capture="environment" style="display:none;">
+              <label class="btn btn-ghost foto-btn" for="regFotoArchivo">
+                <span class="ic">🖼️</span> Subir imagen
+              </label>
+              <input type="file" id="regFotoArchivo" accept="image/*" style="display:none;">
+              <button type="button" class="btn-icon danger" id="btnQuitarRegFoto" title="Quitar foto" style="display:none;">✕</button>
+            </div>
+          </div>
+
+          <label for="dni">DNI</label>
+          <input id="dni" maxlength="8" placeholder="Ej. 45678912" required>
+
+          <label for="nombre">Apellidos y nombres</label>
+          <input id="nombre" placeholder="Ej. Pérez Ramos, Juan Carlos" required>
+
+          <label for="telefono">Teléfono</label>
+          <input id="telefono" type="tel" maxlength="9" placeholder="Ej. 987654321">
+
+          <label for="placa">Placa</label>
+          <input id="placa" class="plate-input" placeholder="ABC-123" required>
+
+          <label for="fecha">Fecha de ingreso</label>
+          <input id="fecha" disabled>
+
+          <label for="descripcion">Descripción del trabajo</label>
+          <textarea id="descripcion" placeholder="Ej. Cambio de aceite y filtro, revisión de frenos" required></textarea>
+
+          <div class="row2">
+            <div>
+              <label for="plazo">Plazo (días)</label>
+              <input id="plazo" type="number" min="0" placeholder="Ej. 3" required>
+            </div>
+            <div>
+              <label for="monto">Monto (S/.)</label>
+              <input id="monto" type="number" min="0" step="0.01" placeholder="Ej. 150.00" required>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary full">Guardar registro</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ============ REGISTRO (listado) ============ -->
+    <section class="page" id="page-registro">
+      <div class="page-head">
+        <h2>Registro</h2>
+        <div class="desc">Todos los servicios guardados, ordenados por urgencia de plazo.</div>
+      </div>
+      <div class="panel table-panel" style="margin-top:0;">
+        <table>
+          <thead>
+            <tr><th>Cliente / Placa</th><th>Descripción</th><th>Plazo</th><th>Monto</th><th></th></tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div id="emptyState" class="empty-state" style="display:none;">Aún no hay registros. Ve al menú "Registro" para crear el primero.</div>
+      </div>
+    </section>
+
+    <!-- ============ STOCK ============ -->
+    <section class="page" id="page-stock">
+      <div class="page-head reg-head">
+        <div>
+          <h2 id="stockPageTitle">Stock</h2>
+          <div class="desc" id="stockPageDesc">Repuestos e insumos del taller.</div>
+        </div>
+      </div>
+
+      <div class="search-wrap" style="margin-top:14px;margin-bottom:0;">
+        <div class="search-box">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="stockSearchInput" type="text" placeholder="Buscar ítem…" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="panel table-panel">
+        <div class="stock-grid" id="stockGrid"></div>
+        <div id="stockEmpty" class="empty-state" style="display:none;">Aún no hay ítems en stock.</div>
+      </div>
+    </section>
+
+    <!-- ============ STOCK · RESUMEN ============ -->
+    <section class="page" id="page-stock-graficos">
+      <div class="page-head">
+        <h2>Stock · Resumen</h2>
+        <div class="desc">Todos los productos, cuánto stock queda y el último descuento registrado.</div>
+      </div>
+
+      <div class="panel table-panel" style="margin-top:14px;">
+        <table>
+          <thead>
+            <tr><th>Producto</th><th>Stock</th><th>Fecha</th><th>Descontado</th><th>Valor (S/.)</th></tr>
+          </thead>
+          <tbody id="stockResumenBody"></tbody>
+          <tfoot id="stockResumenFoot">
+            <tr>
+              <th>Total</th>
+              <th id="stockResumenTotalStock">0</th>
+              <th></th>
+              <th id="stockResumenTotalDescontado">0</th>
+              <th id="stockResumenTotalValor">S/. 0.00</th>
+            </tr>
+          </tfoot>
+        </table>
+        <div id="stockResumenEmpty" class="empty-state" style="display:none;">Aún no hay ítems en stock.</div>
+      </div>
+    </section>
+
+    <!-- ============ BD (tabla de datos) ============ -->
+    <section class="page" id="page-bd">
+      <div class="page-head">
+        <h2>BD</h2>
+        <div class="desc">Vista en tabla de todos los registros de servicio.</div>
+      </div>
+      <div class="dash mini" id="bdKpis">
+        <button type="button" class="card danger" data-filtro="danger"><div class="n" id="bdCountVencidos">0</div><div class="l">Vencidos</div></button>
+        <button type="button" class="card warn" data-filtro="warn"><div class="n" id="bdCountProximos">0</div><div class="l">Por vencer (≤2 días)</div></button>
+        <button type="button" class="card ok" data-filtro="ok"><div class="n" id="bdCountATiempo">0</div><div class="l">A tiempo</div></button>
+      </div>
+      <div class="search-wrap" style="margin-top:0;margin-bottom:16px;">
+        <div class="search-box">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="bdSearchInput" type="text" placeholder="Buscar por nombre o placa…" autocomplete="off">
+        </div>
+      </div>
+      <div class="panel table-panel" style="margin-top:0;">
+        <table>
+          <thead>
+            <tr><th>Cliente / Placa</th><th>Descripción</th><th>Plazo</th><th>Monto</th><th></th></tr>
+          </thead>
+          <tbody id="bdTableBody"></tbody>
+        </table>
+        <div id="bdEmpty" class="empty-state" style="display:none;">Aún no hay registros guardados.</div>
+      </div>
+    </section>
+
+    <!-- ============ DESCUENTOS (ventas de stock a clientes) ============ -->
+    <section class="page" id="page-descuentos">
+      <div class="page-head">
+        <h2>Descuentos</h2>
+        <div class="desc">Personas a las que se les descontó stock, con su boleta.</div>
+      </div>
+      <div class="search-wrap" style="margin-top:0;margin-bottom:16px;">
+        <div class="search-box">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="descuentosSearchInput" type="text" placeholder="Buscar por nombre o DNI…" autocomplete="off">
+        </div>
+      </div>
+      <div class="panel table-panel" style="margin-top:0;">
+        <table>
+          <thead>
+            <tr><th>Cliente</th><th>Ítem</th><th>Cantidad</th><th>Total</th><th>Fecha</th><th></th></tr>
+          </thead>
+          <tbody id="descuentosTableBody"></tbody>
+        </table>
+        <div id="descuentosEmpty" class="empty-state" style="display:none;">Aún no hay descuentos registrados.</div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- FACTURA MODAL -->
+<div class="overlay" id="boletaOverlay">
+  <div class="factura" id="boletaContent"></div>
+</div>
+
+<!-- VOLANTE MODAL -->
+<div class="overlay" id="volanteOverlay">
+  <div class="modal-box">
+    <button type="button" class="modal-close" id="btnCerrarVolante" title="Cerrar">✕</button>
+    <h2 class="cat-amarillo">Volante para WhatsApp</h2>
+    <div class="desc">Comparte el recordatorio de servicio con tu cliente.</div>
+    <div class="volante-box">
+      <img id="volanteImg" alt="Volante ORD CAR SERVICE">
+    </div>
+    <div class="volante-actions">
+      <button type="button" class="btn btn-ghost" id="btnDescargarVolante">⬇️ Descargar imagen</button>
+      <button type="button" class="btn btn-whatsapp" id="btnEnviarWhatsapp">💬 Enviar por WhatsApp</button>
+    </div>
+  </div>
+</div>
+<canvas id="volanteCanvas" width="900" height="1160" style="display:none;"></canvas>
+
+<!-- STOCK MODAL (agregar / editar ítem) -->
+<div class="overlay" id="stockModalOverlay">
+  <div class="modal-box">
+    <button type="button" class="modal-close" id="btnCerrarStockModal" title="Cerrar">✕</button>
+    <h2 id="stockFormTitle" class="cat-amarillo">Repuesto</h2>
+    <div class="desc" id="stockFormDesc">Registra un repuesto o insumo del taller.</div>
+    <form id="stockForm">
+      <label for="stkFoto">Foto del ítem</label>
+      <div class="foto-wrap">
+        <div class="foto-preview" id="fotoPreview">
+          <span class="foto-preview-ic">📷</span>
+        </div>
+        <div class="foto-actions">
+          <label class="btn btn-ghost foto-btn" for="stkFotoCamara">
+            <span class="ic">📸</span> Tomar foto
+          </label>
+          <input type="file" id="stkFotoCamara" accept="image/*" capture="environment" style="display:none;">
+          <label class="btn btn-ghost foto-btn" for="stkFotoArchivo">
+            <span class="ic">🖼️</span> Subir imagen
+          </label>
+          <input type="file" id="stkFotoArchivo" accept="image/*" style="display:none;">
+          <button type="button" class="btn-icon danger" id="btnQuitarFoto" title="Quitar foto" style="display:none;">✕</button>
+        </div>
+      </div>
+
+      <label for="stkItem">Ítem</label>
+      <input id="stkItem" placeholder="Ej. Filtro de aceite" required>
+
+      <div class="row3">
+        <div>
+          <label for="stkCantidad">Cantidad</label>
+          <input id="stkCantidad" type="number" min="0" step="1" placeholder="Ej. 20" required>
+        </div>
+        <div>
+          <label for="stkUnidad">Unidad</label>
+          <input id="stkUnidad" placeholder="Ej. UND" required>
+        </div>
+        <div>
+          <label for="stkPrecio">P. unitario (S/.)</label>
+          <input id="stkPrecio" type="number" min="0" step="0.01" placeholder="Ej. 25.00" required>
+        </div>
+      </div>
+
+      <label for="stkDescripcion">Descripción</label>
+      <textarea id="stkDescripcion" placeholder="Ej. Filtro de aceite universal, compatible con..."></textarea>
+
+      <button type="submit" class="btn btn-primary full" id="stkSubmitBtn">Guardar ítem</button>
+    </form>
+  </div>
+</div>
+
+<!-- DESCONTAR STOCK MODAL (nuevo pedido / consumo) -->
+<div class="overlay" id="descontarModalOverlay">
+  <div class="modal-box" style="max-width:380px;">
+    <button type="button" class="modal-close" id="btnCerrarDescontarModal" title="Cerrar">✕</button>
+    <h2>Descontar stock</h2>
+    <div class="desc" id="descontarItemDesc">Ítem</div>
+    <form id="descontarForm">
+      <label for="descDNI">DNI</label>
+      <input id="descDNI" type="text" inputmode="numeric" maxlength="8" placeholder="Ej. 12345678" required>
+      <label for="descNombre">Apellidos y nombres</label>
+      <input id="descNombre" placeholder="Ej. Quinto Ayala, Christian Marcelo" required>
+      <label for="descCantidad">Cantidad a descontar</label>
+      <input id="descCantidad" type="number" min="1" step="1" placeholder="Ej. 2" required>
+      <label for="descMotivo">Motivo (opcional)</label>
+      <input id="descMotivo" placeholder="Ej. Nuevo pedido — Placa ABC-123">
+      <button type="submit" class="btn btn-cat full rojo" id="descSubmitBtn">Descontar del stock</button>
+    </form>
+  </div>
+</div>
+
+<!-- EDITAR DESCUENTO MODAL -->
+<div class="overlay" id="editarDescuentoOverlay">
+  <div class="modal-box" style="max-width:380px;">
+    <button type="button" class="modal-close" id="btnCerrarEditarDescuento" title="Cerrar">✕</button>
+    <h2>Editar descuento</h2>
+    <div class="desc" id="editarDescuentoItemDesc">Ítem</div>
+    <form id="editarDescuentoForm">
+      <label for="editDescDNI">DNI</label>
+      <input id="editDescDNI" type="text" inputmode="numeric" maxlength="8" placeholder="Ej. 12345678" required>
+      <label for="editDescNombre">Apellidos y nombres</label>
+      <input id="editDescNombre" placeholder="Ej. Quinto Ayala, Christian Marcelo" required>
+      <label for="editDescCantidad">Cantidad</label>
+      <input id="editDescCantidad" type="number" min="1" step="1" required>
+      <label for="editDescMotivo">Motivo (opcional)</label>
+      <input id="editDescMotivo" placeholder="Ej. Nuevo pedido — Placa ABC-123">
+      <button type="submit" class="btn btn-cat full rojo" id="editDescSubmitBtn">Guardar cambios</button>
+    </form>
+  </div>
+</div>
+
+<script>
+(function(){
+  const REG_KEY = 'taller_registros_v1';
+  const STOCK_KEY = 'taller_stock_v1';
+  const STOCK_MOV_KEY = 'taller_stock_mov_v1';
+  let registros = JSON.parse(localStorage.getItem(REG_KEY) || '[]');
+  let stock = JSON.parse(localStorage.getItem(STOCK_KEY) || '[]');
+  let movimientos = JSON.parse(localStorage.getItem(STOCK_MOV_KEY) || '[]');
+  let modeCliente = null;
+  let editingStockId = null;
+  let categoriaActual = 'repuesto';
+  let filtroStock = null;
+  let filtroGraficos = 'todo'; // todo | repuesto | filtro | bebidas
+  let stockSearchTerm = '';
+
+  function saveMovimientos(){ localStorage.setItem(STOCK_MOV_KEY, JSON.stringify(movimientos)); }
+  function registrarMovimiento(item, tipo, cantidad, motivo, cliente){
+    if(!cantidad || cantidad <= 0) return null;
+    const mov = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+      itemId: item.id, itemNombre: item.item, unidad: item.unidad || '', categoria: item.categoria || 'repuesto',
+      tipo, cantidad, precio: Number(item.precio || 0), fecha: todayISO(), motivo: motivo || '',
+      dni: (cliente && cliente.dni) || '', nombre: (cliente && cliente.nombre) || ''
+    };
+    movimientos.push(mov);
+    saveMovimientos();
+    return mov;
+  }
+
+  const CATEGORIAS = {
+    repuesto: {titulo:'Repuesto', clase:'cat-amarillo', color:'amarillo', desc:'Registra un repuesto del taller.'},
+    filtro:   {titulo:'Filtro',   clase:'cat-rojo',     color:'rojo',     desc:'Registra un filtro del taller.'},
+    bebidas:  {titulo:'Bebidas',  clase:'cat-verde',    color:'verde',    desc:'Registra una bebida del taller.'}
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- Widget de foto reutilizable (cámara / archivo) ----------
+  function crearFotoWidget({preview, camara, archivo, quitar}){
+    const previewEl = $(preview), camaraEl = $(camara), archivoEl = $(archivo), quitarEl = $(quitar);
+    let actual = null;
+
+    function set(dataUrl){
+      actual = dataUrl;
+      if(dataUrl){
+        previewEl.innerHTML = `<img src="${dataUrl}" alt="Foto">`;
+        quitarEl.style.display = 'inline-flex';
+      } else {
+        previewEl.innerHTML = `<span class="foto-preview-ic">📷</span>`;
+        quitarEl.style.display = 'none';
+      }
+    }
+    function manejarArchivo(file){
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => set(e.target.result);
+      reader.readAsDataURL(file);
+    }
+    camaraEl.addEventListener('change', (e) => manejarArchivo(e.target.files[0]));
+    archivoEl.addEventListener('change', (e) => manejarArchivo(e.target.files[0]));
+    quitarEl.addEventListener('click', () => { set(null); camaraEl.value = ''; archivoEl.value = ''; });
+
+    return { get: () => actual, set };
+  }
+
+  // ---------- Navegación ----------
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => irAPagina(btn.dataset.page));
+  });
+  function irAPagina(page){
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+    document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
+    if(page !== 'stock'){
+      filtroStock = null;
+      document.querySelectorAll('.nav-sub-btn').forEach(b => b.classList.remove('active'));
+    }
+    renderAll();
+  }
+
+  document.querySelector('.nav-stock').addEventListener('click', () => {
+    $('navStockGroup').classList.toggle('open');
+  });
+
+  document.querySelectorAll('.nav-sub-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      filtroStock = btn.dataset.subcat;
+      document.querySelectorAll('.nav-sub-btn').forEach(b => b.classList.toggle('active', b === btn));
+      irAPagina('stock');
+      document.querySelectorAll('.nav-sub-btn').forEach(b => b.classList.toggle('active', b === btn));
+      // Abre directamente el formulario de esa subcarpeta
+      resetStockForm();
+      aplicarCategoria(btn.dataset.subcat);
+      abrirStockModal();
+      stkItem.focus();
+    });
+  });
+  $('logoHome').addEventListener('click', () => irAPagina('nuevo'));
+
+  // ---------- Utilidades de fecha ----------
+  function todayISO(){ return new Date().toISOString().slice(0,10); }
+  function todayHuman(){ return new Date().toLocaleDateString('es-PE', {day:'2-digit', month:'short', year:'numeric'}); }
+  $('fecha').value = todayHuman();
+
+  function saveReg(){ localStorage.setItem(REG_KEY, JSON.stringify(registros)); }
+  function saveStock(){ localStorage.setItem(STOCK_KEY, JSON.stringify(stock)); }
+
+  function diasRestantes(r){
+    const limite = new Date(r.fechaIngreso + 'T00:00:00');
+    limite.setDate(limite.getDate() + Number(r.plazo));
+    const hoy = new Date(todayISO() + 'T00:00:00');
+    return {dias: Math.round((limite - hoy) / 86400000), limiteStr: limite.toLocaleDateString('es-PE', {day:'2-digit', month:'short', year:'numeric'})};
+  }
+  function estadoDe(dias){ if(dias < 0) return 'danger'; if(dias <= 2) return 'warn'; return 'ok'; }
+  function textoEstado(dias){
+    if(dias < 0) return `Vencido hace ${Math.abs(dias)} día${Math.abs(dias)===1?'':'s'}`;
+    if(dias === 0) return 'Vence hoy';
+    return `${dias} día${dias===1?'':'s'} restante${dias===1?'':'s'}`;
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function filaBadge(r){
+    const {dias, limiteStr} = diasRestantes(r);
+    const estado = estadoDe(dias);
+    const thumb = r.foto
+      ? `<img class="reg-thumb" src="${r.foto}" alt="Foto vehículo">`
+      : `<div class="reg-thumb reg-thumb-empty">🚗</div>`;
+    return `
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${thumb}
+          <div>
+            <div class="cliente-nombre">${escapeHtml(r.nombre)}</div>
+            <div class="cliente-dni plate">${escapeHtml(r.placa)} · DNI ${escapeHtml(r.dni)}</div>
+          </div>
+        </div>
+      </td>
+      <td class="desc-cell">${escapeHtml(r.descripcion)}</td>
+      <td>
+        <span class="badge ${estado}"><span class="dot"></span>${textoEstado(dias)}</span>
+        <div class="fecha-limite">Vence ${limiteStr}</div>
+      </td>
+      <td class="monto">S/. ${Number(r.monto).toFixed(2)}</td>
+    `;
+  }
+
+  // ---------- Render: Registro (listado) ----------
+  function renderRegistro(){
+    const sorted = [...registros].sort((a,b) => diasRestantes(a).dias - diasRestantes(b).dias);
+    const tbody = $('tableBody');
+    tbody.innerHTML = sorted.map(r => `
+      <tr>
+        ${filaBadge(r)}
+        <td>
+          <div class="actions-cell">
+            <button class="btn-icon" title="Ver factura" data-boleta="${r.id}">🧾</button>
+            <button class="btn-icon danger" title="Eliminar" data-del="${r.id}">✕</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+    $('emptyState').style.display = registros.length ? 'none' : 'block';
+
+    tbody.querySelectorAll('[data-boleta]').forEach(b => b.addEventListener('click', () => abrirBoleta(b.dataset.boleta)));
+    tbody.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => eliminarRegistro(b.dataset.del)));
+  }
+
+  function eliminarRegistro(id){
+    registros = registros.filter(r => r.id !== id);
+    saveReg(); renderAll();
+  }
+
+  // ---------- Boleta ----------
+  function abrirBoleta(id){
+    const r = registros.find(x => x.id === id);
+    if(!r) return;
+    const {limiteStr} = diasRestantes(r);
+    const numFactura = 'F001-' + r.id.slice(-6).toUpperCase();
+    const monto = Number(r.monto);
+    const subtotal = monto / 1.18;
+    const igv = monto - subtotal;
+    $('boletaContent').innerHTML = `
+      <div class="factura-head">
+        <div class="factura-brand">
+          <h1>ORD CAR<br>SERVICE</h1>
+          <div class="sub">Taller de confianza · repuestos y servicio técnico</div>
+          <div class="datos">RUC 20601234567 · Av. Los Talleres 123, Lurigancho-Chosica, Lima<br>Cel. 987 654 321 · ordcarservice@gmail.com</div>
+        </div>
+        <div class="factura-meta">
+          <div class="tipo">Factura</div>
+          <div class="num">${numFactura}</div>
+          <div class="row">Emisión <span>${todayHuman()}</span></div>
+          <div class="row">Vencimiento <span>${limiteStr}</span></div>
+        </div>
+      </div>
+
+      <div class="factura-cliente">
+        <div>
+          <div class="k">Cliente</div>
+          <div class="v">${escapeHtml(r.nombre)}</div>
+        </div>
+        <div>
+          <div class="k">DNI</div>
+          <div class="v">${escapeHtml(r.dni)}</div>
+        </div>
+        <div>
+          <div class="k">Placa</div>
+          <div class="v">${escapeHtml(r.placa)}</div>
+        </div>
+        <div>
+          <div class="k">Teléfono</div>
+          <div class="v">${escapeHtml(r.telefono || '—')}</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Descripción</th><th class="num">Cant.</th><th class="num">P. Unit.</th><th class="num">Importe</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>${escapeHtml(r.descripcion)}</td>
+            <td class="num">1</td>
+            <td class="num">S/. ${monto.toFixed(2)}</td>
+            <td class="num">S/. ${monto.toFixed(2)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="totales">
+        <div class="line"><span>Op. gravada</span><span>S/. ${subtotal.toFixed(2)}</span></div>
+        <div class="line"><span>IGV (18%)</span><span>S/. ${igv.toFixed(2)}</span></div>
+        <div class="total"><span>Total</span><span>S/. ${monto.toFixed(2)}</span></div>
+      </div>
+
+      <div class="factura-footer">
+        ¡Gracias por confiar en ORD CAR SERVICE!<br>Representación impresa de la factura electrónica.
+      </div>
+
+      <div class="factura-actions">
+        <button class="btn btn-ghost" id="btnCerrarBoleta">Cerrar</button>
+        <button class="btn btn-primary" id="btnImprimirBoleta" style="margin-top:0;">Imprimir</button>
+      </div>
+    `;
+    $('boletaOverlay').classList.add('open');
+    $('btnCerrarBoleta').addEventListener('click', cerrarBoleta);
+    $('btnImprimirBoleta').addEventListener('click', () => window.print());
+  }
+  function cerrarBoleta(){ $('boletaOverlay').classList.remove('open'); }
+  $('boletaOverlay').addEventListener('click', (e) => { if(e.target.id === 'boletaOverlay') cerrarBoleta(); });
+
+  // ---------- Volante para WhatsApp ----------
+  let volanteActual = null; // {dataUrl, mensaje, nombreArchivo}
+
+  function dibujarRoundRect(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function generarVolante(r){
+    const canvas = $('volanteCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const {dias, limiteStr} = diasRestantes(r);
+    const estado = estadoDe(dias);
+    const colorEstado = estado === 'danger' ? '#e35b56' : (estado === 'warn' ? '#e29a1a' : '#2f9e63');
+
+    // Fondo
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#101a2e');
+    bg.addColorStop(1, '#1c2c4d');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Glow decorativo
+    const glow = ctx.createRadialGradient(W - 120, 140, 20, W - 120, 140, 320);
+    glow.addColorStop(0, 'rgba(242,160,31,.35)');
+    glow.addColorStop(1, 'rgba(242,160,31,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
+
+    // Franja superior
+    ctx.fillStyle = '#f2a01f';
+    ctx.fillRect(0, 0, W, 10);
+
+    // Título
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#f2a01f';
+    ctx.font = "700 74px 'Barlow Condensed', sans-serif";
+    ctx.fillText('ORD CAR', 56, 150);
+    ctx.fillText('SERVICE', 56, 226);
+
+    ctx.font = "500 24px 'Inter', sans-serif";
+    ctx.fillStyle = '#c6cede';
+    ctx.fillText('Taller de confianza · repuestos y servicio técnico', 56, 264);
+
+    // Icono de auto (emoji, soportado por el motor de canvas)
+    ctx.font = "120px sans-serif";
+    ctx.fillText('🔧🚗', 56, 380);
+
+    // Panel de datos
+    const px = 56, py = 430, pw = W - 112, ph = 560;
+    ctx.fillStyle = '#ffffff';
+    dibujarRoundRect(ctx, px, py, pw, ph, 20);
+    ctx.fill();
+
+    let y = py + 70;
+    ctx.fillStyle = '#6b7383';
+    ctx.font = "600 22px 'Inter', sans-serif";
+    ctx.fillText('RECORDATORIO DE SERVICIO', px + 40, y);
+
+    y += 56;
+    ctx.fillStyle = '#1c2333';
+    ctx.font = "700 40px 'Barlow Condensed', sans-serif";
+    ctx.fillText(r.nombre, px + 40, y);
+
+    y += 44;
+    ctx.fillStyle = '#6b7383';
+    ctx.font = "600 24px 'IBM Plex Mono', monospace";
+    ctx.fillText('PLACA ' + r.placa, px + 40, y);
+
+    y += 60;
+    ctx.strokeStyle = '#dde2e9';
+    ctx.beginPath(); ctx.moveTo(px + 40, y); ctx.lineTo(px + pw - 40, y); ctx.stroke();
+
+    y += 50;
+    ctx.fillStyle = '#6b7383';
+    ctx.font = "600 20px 'Inter', sans-serif";
+    ctx.fillText('SERVICIO', px + 40, y);
+    y += 36;
+    ctx.fillStyle = '#1c2333';
+    ctx.font = "500 26px 'Inter', sans-serif";
+    const descLineas = ajustarTexto(ctx, r.descripcion, pw - 80);
+    descLineas.slice(0, 2).forEach(linea => { ctx.fillText(linea, px + 40, y); y += 34; });
+
+    y += 26;
+    ctx.fillStyle = colorEstado;
+    dibujarRoundRect(ctx, px + 40, y - 30, 300, 46, 23);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = "600 22px 'Inter', sans-serif";
+    ctx.fillText(textoEstado(dias), px + 62, y + 1);
+
+    ctx.fillStyle = '#6b7383';
+    ctx.font = "500 22px 'Inter', sans-serif";
+    ctx.fillText('Vence ' + limiteStr, px + 360, y + 1);
+
+    y += 90;
+    ctx.strokeStyle = '#dde2e9';
+    ctx.beginPath(); ctx.moveTo(px + 40, y); ctx.lineTo(px + pw - 40, y); ctx.stroke();
+
+    y += 56;
+    ctx.fillStyle = '#6b7383';
+    ctx.font = "600 22px 'Inter', sans-serif";
+    ctx.fillText('TOTAL', px + 40, y);
+    ctx.fillStyle = '#f2a01f';
+    ctx.font = "700 44px 'Barlow Condensed', sans-serif";
+    ctx.textAlign = 'right';
+    ctx.fillText('S/. ' + Number(r.monto).toFixed(2), px + pw - 40, y + 8);
+    ctx.textAlign = 'left';
+
+    // Pie
+    ctx.fillStyle = '#c6cede';
+    ctx.font = "500 22px 'Inter', sans-serif";
+    ctx.fillText('¡Gracias por confiar en ORD CAR SERVICE!', 56, H - 60);
+
+    return canvas.toDataURL('image/png');
+  }
+
+  function ajustarTexto(ctx, texto, maxAncho){
+    const palabras = String(texto || '').split(' ');
+    const lineas = [];
+    let actual = '';
+    palabras.forEach(palabra => {
+      const prueba = actual ? actual + ' ' + palabra : palabra;
+      if(ctx.measureText(prueba).width > maxAncho && actual){
+        lineas.push(actual);
+        actual = palabra;
+      } else {
+        actual = prueba;
+      }
+    });
+    if(actual) lineas.push(actual);
+    return lineas;
+  }
+
+  function abrirVolante(id){
+    const r = registros.find(x => x.id === id);
+    if(!r) return;
+    const dataUrl = generarVolante(r);
+    const {limiteStr} = diasRestantes(r);
+    $('volanteImg').src = dataUrl;
+    const mensaje = `Hola ${r.nombre}, le saluda ORD CAR SERVICE 🔧🚗\nRecordatorio de su servicio: ${r.descripcion}\nPlaca: ${r.placa}\nVence: ${limiteStr}\nTotal: S/. ${Number(r.monto).toFixed(2)}\n¡Gracias por su preferencia!`;
+    volanteActual = {dataUrl, mensaje, telefono: (r.telefono || '').replace(/\D/g,''), nombreArchivo: `volante_${(r.placa || 'cliente').replace(/\s+/g,'')}.png`};
+    $('volanteOverlay').classList.add('open');
+  }
+  function cerrarVolante(){ $('volanteOverlay').classList.remove('open'); }
+  $('btnCerrarVolante').addEventListener('click', cerrarVolante);
+  $('volanteOverlay').addEventListener('click', (e) => { if(e.target.id === 'volanteOverlay') cerrarVolante(); });
+
+  $('btnDescargarVolante').addEventListener('click', () => {
+    if(!volanteActual) return;
+    const a = document.createElement('a');
+    a.href = volanteActual.dataUrl;
+    a.download = volanteActual.nombreArchivo;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  });
+
+  $('btnEnviarWhatsapp').addEventListener('click', async () => {
+    if(!volanteActual) return;
+    const waUrl = volanteActual.telefono
+      ? `https://wa.me/51${volanteActual.telefono}?text=${encodeURIComponent(volanteActual.mensaje)}`
+      : `https://wa.me/?text=${encodeURIComponent(volanteActual.mensaje)}`;
+
+    // 1) En celular: comparte la imagen ya adjunta directo al selector nativo (elige WhatsApp y se envía)
+    try{
+      const blob = await (await fetch(volanteActual.dataUrl)).blob();
+      const file = new File([blob], volanteActual.nombreArchivo, {type:'image/png'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({files:[file], text: volanteActual.mensaje, title:'ORD CAR SERVICE'});
+        return;
+      }
+    }catch(err){
+      if(err && err.name === 'AbortError') return; // el usuario canceló el share, no seguimos
+    }
+
+    // 2) En computadora: copia la imagen al portapapeles y abre el chat listo para pegar (Ctrl+V)
+    try{
+      const blob = await (await fetch(volanteActual.dataUrl)).blob();
+      await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+    }catch(err){
+      const a = document.createElement('a');
+      a.href = volanteActual.dataUrl;
+      a.download = volanteActual.nombreArchivo;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+    window.open(waUrl, '_blank');
+  });
+
+  // ---------- Búsqueda de cliente ----------
+  const searchInput = $('searchInput');
+  const searchResults = $('searchResults');
+  const dniInput = $('dni'), nombreInput = $('nombre'), telefonoInput = $('telefono'), placaInput = $('placa'),
+        descInput = $('descripcion'), plazoInput = $('plazo'), montoInput = $('monto');
+  const fotoReg = crearFotoWidget({preview:'regFotoPreview', camara:'regFotoCamara', archivo:'regFotoArchivo', quitar:'btnQuitarRegFoto'});
+
+  function clientesUnicos(){
+    const map = new Map();
+    registros.forEach(r => map.set(r.placa.toUpperCase(), {dni:r.dni, nombre:r.nombre, telefono:r.telefono || '', placa:r.placa}));
+    return [...map.values()];
+  }
+
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim().toLowerCase();
+    if(!q){ searchResults.style.display = 'none'; return; }
+    const matches = clientesUnicos().filter(c => c.placa.toLowerCase().includes(q) || c.nombre.toLowerCase().includes(q));
+    searchResults.innerHTML = matches.length === 0
+      ? '<div class="search-empty">Sin coincidencias. Se registrará como cliente nuevo.</div>'
+      : matches.map(c => `
+          <button type="button" data-placa="${escapeHtml(c.placa)}">
+            <span class="sr-name">${escapeHtml(c.nombre)}</span>
+            <span class="sr-plate">${escapeHtml(c.placa)}</span>
+          </button>`).join('');
+    searchResults.style.display = 'block';
+  });
+  document.addEventListener('click', (e) => { if(!e.target.closest('.search-wrap')) searchResults.style.display = 'none'; });
+  searchResults.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-placa]');
+    if(!btn) return;
+    const cliente = clientesUnicos().find(c => c.placa === btn.dataset.placa);
+    if(cliente) activarModoCliente(cliente);
+    searchResults.style.display = 'none';
+    searchInput.value = '';
+  });
+
+  function activarModoCliente(cliente){
+    modeCliente = cliente;
+    dniInput.value = cliente.dni; nombreInput.value = cliente.nombre; telefonoInput.value = cliente.telefono || ''; placaInput.value = cliente.placa;
+    dniInput.disabled = true; nombreInput.disabled = true; telefonoInput.disabled = true; placaInput.disabled = true;
+    descInput.value = ''; plazoInput.value = ''; montoInput.value = '';
+    fotoReg.set(null);
+    $('formTitle').textContent = 'Nuevo servicio';
+    $('modeBanner').style.display = 'flex';
+    $('modeName').textContent = cliente.nombre;
+    $('modePlate').textContent = cliente.placa;
+    descInput.focus();
+  }
+  function resetModoCliente(){
+    modeCliente = null;
+    dniInput.disabled = false; nombreInput.disabled = false; telefonoInput.disabled = false; placaInput.disabled = false;
+    $('regForm').reset();
+    fotoReg.set(null);
+    $('fecha').value = todayHuman();
+    $('formTitle').textContent = 'Datos del servicio';
+    $('modeBanner').style.display = 'none';
+  }
+  $('btnResetMode').addEventListener('click', resetModoCliente);
+
+  $('regForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    registros.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+      dni: dniInput.value.trim(),
+      nombre: nombreInput.value.trim(),
+      telefono: telefonoInput.value.trim(),
+      placa: placaInput.value.trim().toUpperCase(),
+      fechaIngreso: todayISO(),
+      descripcion: descInput.value.trim(),
+      plazo: Number(plazoInput.value),
+      monto: Number(montoInput.value),
+      foto: fotoReg.get()
+    });
+    saveReg();
+    resetModoCliente();
+    irAPagina('registro');
+  });
+
+  // ---------- Stock ----------
+  const stkItem = $('stkItem'), stkCantidad = $('stkCantidad'), stkUnidad = $('stkUnidad'),
+        stkPrecio = $('stkPrecio'), stkDescripcion = $('stkDescripcion');
+  const fotoStock = crearFotoWidget({preview:'fotoPreview', camara:'stkFotoCamara', archivo:'stkFotoArchivo', quitar:'btnQuitarFoto'});
+
+  function renderStock(){
+    const grid = $('stockGrid');
+    const info = filtroStock ? CATEGORIAS[filtroStock] : null;
+    const titulo = $('stockPageTitle');
+    titulo.textContent = info ? 'Stock · ' + (filtroStock === 'filtro' ? 'Filtros' : info.titulo) : 'Stock';
+    titulo.className = info ? info.clase : '';
+    $('stockPageDesc').textContent = info ? info.desc : 'Repuestos e insumos del taller.';
+    let lista = filtroStock ? stock.filter(s => (s.categoria || 'repuesto') === filtroStock) : stock;
+    if(stockSearchTerm) lista = lista.filter(s => normaliza(s.item).includes(stockSearchTerm));
+    grid.innerHTML = lista.map(s => `
+      <div class="stock-card">
+        <div class="sc-photo">
+          ${s.foto ? `<img src="${s.foto}" alt="${escapeHtml(s.item)}">` : `<span class="sc-noimg">📦</span>`}
+        </div>
+        <div class="sc-body">
+          <div class="sc-marca ${(CATEGORIAS[s.categoria] || CATEGORIAS.repuesto).clase}">Taller · ${(CATEGORIAS[s.categoria] || CATEGORIAS.repuesto).titulo}</div>
+          <div class="sc-nombre">${escapeHtml(s.item)}</div>
+          <div class="sc-specs">
+            <div><span class="sk">Cantidad:</span> <span class="sv">${s.cantidad} ${escapeHtml(s.unidad)}</span></div>
+            <div><span class="sk">P. unitario:</span> <span class="sv">S/. ${Number(s.precio).toFixed(2)}</span></div>
+            <div><span class="sk">Valor total:</span> <span class="sv">S/. ${(Number(s.cantidad) * Number(s.precio)).toFixed(2)}</span></div>
+          </div>
+          ${s.descripcion ? `<div class="sc-desc">${escapeHtml(s.descripcion)}</div>` : ''}
+        </div>
+        <div class="sc-precio">S/. ${Number(s.precio).toFixed(2)}</div>
+        <div class="sc-actions">
+          <button class="btn-icon" title="Editar" data-edit="${s.id}">✎</button>
+          <button class="btn-icon descontar" title="Descontar cantidad (nuevo pedido)" data-descontar="${s.id}">➖</button>
+          <button class="btn-icon danger" title="Eliminar" data-delstk="${s.id}">✕</button>
+        </div>
+      </div>
+    `).join('');
+    $('stockEmpty').textContent = stockSearchTerm ? 'No se encontraron ítems con ese nombre.' : (filtroStock ? 'Aún no hay ítems en esta subcarpeta.' : 'Aún no hay ítems en stock.');
+    $('stockEmpty').style.display = lista.length ? 'none' : 'block';
+
+    grid.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => editarStock(b.dataset.edit)));
+    grid.querySelectorAll('[data-descontar]').forEach(b => b.addEventListener('click', () => abrirDescontarModal(b.dataset.descontar)));
+    grid.querySelectorAll('[data-delstk]').forEach(b => b.addEventListener('click', () => eliminarStock(b.dataset.delstk)));
+  }
+  $('stockSearchInput').addEventListener('input', (e) => {
+    stockSearchTerm = normaliza(e.target.value.trim());
+    renderStock();
+  });
+
+  // ---------- Render: BD (vista en tabla de registros) ----------
+  let bdSearchTerm = '';
+  let bdFiltroEstado = null; // null | 'danger' | 'warn' | 'ok'
+  function normaliza(s){
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  function renderBD(){
+    let vencidos = 0, proximos = 0, aTiempo = 0;
+    registros.forEach(r => {
+      const estado = estadoDe(diasRestantes(r).dias);
+      if(estado === 'danger') vencidos++;
+      else if(estado === 'warn') proximos++;
+      else aTiempo++;
+    });
+    $('bdCountVencidos').textContent = vencidos;
+    $('bdCountProximos').textContent = proximos;
+    $('bdCountATiempo').textContent = aTiempo;
+    document.querySelectorAll('#bdKpis [data-filtro]').forEach(b => b.classList.toggle('active', b.dataset.filtro === bdFiltroEstado));
+
+    let filtrados = bdSearchTerm
+      ? registros.filter(r => normaliza(r.nombre).includes(bdSearchTerm) || normaliza(r.placa).includes(bdSearchTerm))
+      : registros;
+    if(bdFiltroEstado) filtrados = filtrados.filter(r => estadoDe(diasRestantes(r).dias) === bdFiltroEstado);
+    const sorted = [...filtrados].sort((a,b) => diasRestantes(a).dias - diasRestantes(b).dias);
+    const tbody = $('bdTableBody');
+    tbody.innerHTML = sorted.map(r => `
+      <tr>
+        ${filaBadge(r)}
+        <td>
+          <div class="actions-cell">
+            <button class="btn-icon" title="Ver factura" data-boleta="${r.id}">🧾</button>
+            <button class="btn-icon whatsapp" title="Enviar volante por WhatsApp" data-volante="${r.id}">💬</button>
+            <button class="btn-icon danger" title="Eliminar" data-del="${r.id}">✕</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+    $('bdEmpty').textContent = (bdSearchTerm || bdFiltroEstado) ? 'No se encontraron registros con ese filtro.' : 'Aún no hay registros guardados.';
+    $('bdEmpty').style.display = sorted.length ? 'none' : 'block';
+
+    tbody.querySelectorAll('[data-boleta]').forEach(b => b.addEventListener('click', () => abrirBoleta(b.dataset.boleta)));
+    tbody.querySelectorAll('[data-volante]').forEach(b => b.addEventListener('click', () => abrirVolante(b.dataset.volante)));
+    tbody.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => eliminarRegistro(b.dataset.del)));
+  }
+  document.querySelectorAll('#bdKpis [data-filtro]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      bdFiltroEstado = (bdFiltroEstado === btn.dataset.filtro) ? null : btn.dataset.filtro;
+      renderBD();
+    });
+  });
+  $('bdSearchInput').addEventListener('input', (e) => {
+    bdSearchTerm = normaliza(e.target.value.trim());
+    renderBD();
+  });
+
+  // ---------- Descuentos (ventas de stock a clientes) ----------
+  let descuentosSearchTerm = '';
+  function renderDescuentos(){
+    const lista = movimientos.filter(m => m.tipo === 'salida' && (m.dni || m.nombre));
+    const filtrados = descuentosSearchTerm
+      ? lista.filter(m => normaliza(m.nombre || '').includes(descuentosSearchTerm) || normaliza(m.dni || '').includes(descuentosSearchTerm))
+      : lista;
+    const sorted = [...filtrados].sort((a,b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id));
+    const tbody = $('descuentosTableBody');
+    tbody.innerHTML = sorted.map(m => `
+      <tr>
+        <td>
+          <div style="font-weight:700;">${escapeHtml(m.nombre || '—')}</div>
+          <div style="font-size:12px;color:var(--muted);">DNI ${escapeHtml(m.dni || '—')}</div>
+        </td>
+        <td>${escapeHtml(m.itemNombre)}</td>
+        <td>${m.cantidad} ${escapeHtml(m.unidad || '')}</td>
+        <td>S/. ${(Number(m.precio) * Number(m.cantidad)).toFixed(2)}</td>
+        <td>${fechaCorta(m.fecha)}</td>
+        <td>
+          <div class="actions-cell">
+            <button class="btn-icon" title="Imprimir boleta" data-print-desc="${m.id}">🧾</button>
+            <button class="btn-icon" title="Editar" data-edit-desc="${m.id}">✏️</button>
+            <button class="btn-icon danger" title="Eliminar" data-del-desc="${m.id}">✕</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+    $('descuentosEmpty').textContent = descuentosSearchTerm ? 'No se encontraron descuentos con ese nombre o DNI.' : 'Aún no hay descuentos registrados.';
+    $('descuentosEmpty').style.display = sorted.length ? 'none' : 'block';
+
+    tbody.querySelectorAll('[data-print-desc]').forEach(b => b.addEventListener('click', () => {
+      const mov = movimientos.find(m => m.id === b.dataset.printDesc);
+      if(mov) abrirBoletaVenta(mov);
+    }));
+    tbody.querySelectorAll('[data-edit-desc]').forEach(b => b.addEventListener('click', () => abrirEditarDescuento(b.dataset.editDesc)));
+    tbody.querySelectorAll('[data-del-desc]').forEach(b => b.addEventListener('click', () => eliminarDescuento(b.dataset.delDesc)));
+  }
+  $('descuentosSearchInput').addEventListener('input', (e) => {
+    descuentosSearchTerm = normaliza(e.target.value.trim());
+    renderDescuentos();
+  });
+
+  let editandoDescuentoId = null;
+  function abrirEditarDescuento(id){
+    const mov = movimientos.find(m => m.id === id);
+    if(!mov) return;
+    editandoDescuentoId = id;
+    const s = stock.find(x => x.id === mov.itemId);
+    $('editarDescuentoItemDesc').textContent = s
+      ? `${mov.itemNombre} — disponible: ${s.cantidad} ${s.unidad || ''}`
+      : `${mov.itemNombre} — ítem ya no está en stock`;
+    $('editDescDNI').value = mov.dni || '';
+    $('editDescNombre').value = mov.nombre || '';
+    $('editDescCantidad').value = mov.cantidad;
+    $('editDescCantidad').max = s ? Number(s.cantidad) + Number(mov.cantidad) : '';
+    $('editDescMotivo').value = mov.motivo || '';
+    $('editarDescuentoOverlay').classList.add('open');
+    $('editDescDNI').focus();
+  }
+  function cerrarEditarDescuento(){ $('editarDescuentoOverlay').classList.remove('open'); editandoDescuentoId = null; }
+  $('btnCerrarEditarDescuento').addEventListener('click', cerrarEditarDescuento);
+  $('editarDescuentoOverlay').addEventListener('click', (e) => { if(e.target.id === 'editarDescuentoOverlay') cerrarEditarDescuento(); });
+
+  $('editarDescuentoForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const mov = movimientos.find(m => m.id === editandoDescuentoId);
+    if(!mov) return;
+    const dni = $('editDescDNI').value.trim();
+    const nombre = $('editDescNombre').value.trim();
+    const motivo = $('editDescMotivo').value.trim();
+    let cant = Number($('editDescCantidad').value);
+    if(!cant || cant <= 0) return;
+    const s = stock.find(x => x.id === mov.itemId);
+    if(s){
+      const disponibleMax = Number(s.cantidad) + Number(mov.cantidad);
+      if(cant > disponibleMax) cant = disponibleMax;
+      s.cantidad = disponibleMax - cant;
+      saveStock();
+    }
+    mov.dni = dni; mov.nombre = nombre; mov.cantidad = cant; mov.motivo = motivo;
+    saveMovimientos();
+    cerrarEditarDescuento();
+    renderAll();
+  });
+
+  function eliminarDescuento(id){
+    const mov = movimientos.find(m => m.id === id);
+    if(!mov) return;
+    const s = stock.find(x => x.id === mov.itemId);
+    if(s){ s.cantidad = Number(s.cantidad) + Number(mov.cantidad); saveStock(); }
+    movimientos = movimientos.filter(m => m.id !== id);
+    saveMovimientos();
+    renderAll();
+  }
+
+  let editingStockCantidadPrevia = 0;
+  function editarStock(id){
+    const s = stock.find(x => x.id === id);
+    if(!s) return;
+    editingStockId = id;
+    editingStockCantidadPrevia = Number(s.cantidad || 0);
+    stkItem.value = s.item; stkCantidad.value = s.cantidad; stkUnidad.value = s.unidad;
+    stkPrecio.value = s.precio; stkDescripcion.value = s.descripcion || '';
+    fotoStock.set(s.foto || null);
+    aplicarCategoria(s.categoria || 'repuesto');
+    $('stkSubmitBtn').textContent = 'Guardar cambios';
+    abrirStockModal();
+    stkItem.focus();
+  }
+
+  // ---------- Modal de Stock (Agregar / Editar) ----------
+  function abrirStockModal(){ $('stockModalOverlay').classList.add('open'); }
+  function cerrarStockModal(){ $('stockModalOverlay').classList.remove('open'); }
+  $('btnCerrarStockModal').addEventListener('click', cerrarStockModal);
+  $('stockModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'stockModalOverlay') cerrarStockModal(); });
+  function eliminarStock(id){
+    const s = stock.find(x => x.id === id);
+    if(s && Number(s.cantidad) > 0) registrarMovimiento(s, 'salida', Number(s.cantidad));
+    stock = stock.filter(x => x.id !== id);
+    saveStock(); renderAll();
+  }
+
+  // ---------- Modal de Descontar stock (nuevo pedido / consumo rápido) ----------
+  let descontarId = null;
+  function abrirDescontarModal(id){
+    const s = stock.find(x => x.id === id);
+    if(!s) return;
+    descontarId = id;
+    $('descontarItemDesc').textContent = `${s.item} — disponible: ${s.cantidad} ${s.unidad || ''}`;
+    $('descDNI').value = '';
+    $('descNombre').value = '';
+    $('descCantidad').max = s.cantidad;
+    $('descCantidad').value = '';
+    $('descMotivo').value = '';
+    $('descontarModalOverlay').classList.add('open');
+    $('descCantidad').focus();
+  }
+  function cerrarDescontarModal(){ $('descontarModalOverlay').classList.remove('open'); descontarId = null; }
+  $('btnCerrarDescontarModal').addEventListener('click', cerrarDescontarModal);
+  $('descontarModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'descontarModalOverlay') cerrarDescontarModal(); });
+
+  $('descontarForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const s = stock.find(x => x.id === descontarId);
+    if(!s) return;
+    const dni = $('descDNI').value.trim();
+    const nombre = $('descNombre').value.trim();
+    const motivo = $('descMotivo').value.trim();
+    let cant = Number($('descCantidad').value);
+    if(!cant || cant <= 0) return;
+    if(cant > Number(s.cantidad)) cant = Number(s.cantidad);
+    s.cantidad = Number(s.cantidad) - cant;
+    saveStock();
+    const mov = registrarMovimiento(s, 'salida', cant, motivo, {dni, nombre});
+    cerrarDescontarModal();
+    renderAll();
+    if(mov) abrirBoletaVenta(mov);
+  });
+
+  // ---------- Boleta de venta (al descontar stock, o reimpresa desde Descuentos) ----------
+  function fechaHuman(iso){
+    if(!iso) return '—';
+    return new Date(iso + 'T00:00:00').toLocaleDateString('es-PE', {day:'2-digit', month:'short', year:'numeric'});
+  }
+  function abrirBoletaVenta(mov){
+    const numBoleta = 'B001-' + mov.id.slice(-6).toUpperCase();
+    const precioUnit = Number(mov.precio || 0);
+    const total = precioUnit * Number(mov.cantidad);
+    const subtotal = total / 1.18;
+    const igv = total - subtotal;
+    $('boletaContent').innerHTML = `
+      <div class="factura-head">
+        <div class="factura-brand">
+          <h1>ORD CAR<br>SERVICE</h1>
+          <div class="sub">Taller de confianza · repuestos y servicio técnico</div>
+          <div class="datos">RUC 20601234567 · Av. Los Talleres 123, Lurigancho-Chosica, Lima<br>Cel. 987 654 321 · ordcarservice@gmail.com</div>
+        </div>
+        <div class="factura-meta">
+          <div class="tipo">Boleta de venta</div>
+          <div class="num">${numBoleta}</div>
+          <div class="row">Emisión <span>${fechaHuman(mov.fecha)}</span></div>
+        </div>
+      </div>
+
+      <div class="factura-cliente">
+        <div>
+          <div class="k">Cliente</div>
+          <div class="v">${escapeHtml(mov.nombre || '—')}</div>
+        </div>
+        <div>
+          <div class="k">DNI</div>
+          <div class="v">${escapeHtml(mov.dni || '—')}</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Descripción</th><th class="num">Cant.</th><th class="num">P. Unit.</th><th class="num">Importe</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>${escapeHtml(mov.itemNombre)}${mov.motivo ? ' — ' + escapeHtml(mov.motivo) : ''}</td>
+            <td class="num">${mov.cantidad} ${escapeHtml(mov.unidad || '')}</td>
+            <td class="num">S/. ${precioUnit.toFixed(2)}</td>
+            <td class="num">S/. ${total.toFixed(2)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="totales">
+        <div class="line"><span>Op. gravada</span><span>S/. ${subtotal.toFixed(2)}</span></div>
+        <div class="line"><span>IGV (18%)</span><span>S/. ${igv.toFixed(2)}</span></div>
+        <div class="total"><span>Total</span><span>S/. ${total.toFixed(2)}</span></div>
+      </div>
+
+      <div class="factura-footer">
+        ¡Gracias por confiar en ORD CAR SERVICE!<br>Representación impresa de la boleta de venta.
+      </div>
+
+      <div class="factura-actions">
+        <button class="btn btn-ghost" id="btnCerrarBoleta">Cerrar</button>
+        <button class="btn btn-primary" id="btnImprimirBoleta" style="margin-top:0;">Imprimir</button>
+      </div>
+    `;
+    $('boletaOverlay').classList.add('open');
+    $('btnCerrarBoleta').addEventListener('click', cerrarBoleta);
+    $('btnImprimirBoleta').addEventListener('click', () => window.print());
+  }
+  function resetStockForm(){
+    editingStockId = null;
+    $('stockForm').reset();
+    fotoStock.set(null);
+    aplicarCategoria('repuesto');
+    $('stkSubmitBtn').textContent = 'Guardar ítem';
+  }
+
+  function aplicarCategoria(cat){
+    const c = CATEGORIAS[cat] ? cat : 'repuesto';
+    categoriaActual = c;
+    const info = CATEGORIAS[c];
+    const titulo = $('stockFormTitle');
+    titulo.textContent = info.titulo;
+    titulo.className = info.clase;
+    $('stockFormDesc').textContent = info.desc;
+    $('stkSubmitBtn').className = 'btn btn-cat full ' + info.color;
+  }
+
+  $('stockForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const datos = {
+      item: stkItem.value.trim(),
+      cantidad: Number(stkCantidad.value),
+      unidad: stkUnidad.value.trim(),
+      precio: Number(stkPrecio.value),
+      descripcion: stkDescripcion.value.trim(),
+      categoria: categoriaActual,
+      foto: fotoStock.get()
+    };
+    if(editingStockId){
+      const idx = stock.findIndex(s => s.id === editingStockId);
+      if(idx > -1){
+        const diff = datos.cantidad - editingStockCantidadPrevia;
+        stock[idx] = {...stock[idx], ...datos};
+        if(diff > 0) registrarMovimiento(stock[idx], 'entrada', diff);
+        else if(diff < 0) registrarMovimiento(stock[idx], 'salida', Math.abs(diff));
+      }
+    } else {
+      const nuevo = {id: Date.now().toString(36) + Math.random().toString(36).slice(2,7), fecha: todayISO(), ...datos};
+      stock.push(nuevo);
+      registrarMovimiento(nuevo, 'entrada', nuevo.cantidad);
+    }
+    saveStock();
+    resetStockForm();
+    renderAll();
+    cerrarStockModal();
+  });
+
+  // ---------- Render: Stock · Resumen (cuadro simple) ----------
+  function fechaCorta(iso){
+    if(!iso) return 'Sin fecha';
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('es-PE', {day:'2-digit', month:'short'});
+  }
+
+  function renderStockResumen(){
+    const cuerpo = $('stockResumenBody');
+    if(!stock.length){
+      cuerpo.innerHTML = '';
+      $('stockResumenEmpty').style.display = 'block';
+      $('stockResumenFoot').style.display = 'none';
+      return;
+    }
+    $('stockResumenEmpty').style.display = 'none';
+    $('stockResumenFoot').style.display = '';
+
+    let totalStock = 0, totalDescontado = 0, totalValor = 0;
+    cuerpo.innerHTML = stock.map(s => {
+      const movsItem = movimientos.filter(m => m.itemId === s.id && m.tipo === 'salida').sort((a, b) => a.fecha.localeCompare(b.fecha));
+      const ultima = movsItem[movsItem.length - 1];
+      const cant = Number(s.cantidad || 0);
+      const valor = cant * Number(s.precio || 0);
+      totalStock += cant;
+      totalValor += valor;
+      if(ultima) totalDescontado += Number(ultima.cantidad || 0);
+      return `
+        <tr>
+          <td>${escapeHtml(s.item)}</td>
+          <td>${cant} ${escapeHtml(s.unidad || '')}</td>
+          <td>${ultima ? fechaCorta(ultima.fecha) : '—'}</td>
+          <td>${ultima ? Number(ultima.cantidad) + ' ' + escapeHtml(s.unidad || '') : '—'}</td>
+          <td>S/. ${valor.toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    $('stockResumenTotalStock').textContent = totalStock;
+    $('stockResumenTotalDescontado').textContent = totalDescontado;
+    $('stockResumenTotalValor').textContent = 'S/. ' + totalValor.toFixed(2);
+  }
+
+  // ---------- Render global ----------
+  function renderAll(){
+    renderRegistro();
+    renderStock();
+    renderStockResumen();
+    renderBD();
+    renderDescuentos();
+  }
+
+  renderAll();
+  setInterval(renderAll, 60 * 60 * 1000);
+})();
+</script>
+</body>
+</html>
