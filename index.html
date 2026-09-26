@@ -1055,8 +1055,17 @@
 
   function nubeGuardar(coleccion, datos){
     if(!db) return;
+    const payload = {items: datos, actualizado: Date.now()};
+    // Firestore rechaza documentos de más de ~1 MB. Si las fotos acumuladas
+    // superan ese límite, avisamos en vez de fallar en silencio.
+    const tamanoAprox = JSON.stringify(payload).length;
+    if(tamanoAprox > 950000){
+      console.warn('Documento "'+coleccion+'" muy grande ('+tamanoAprox+' bytes) para Firestore (límite ~1MB). No se sincronizó con la nube; sigue guardado en este dispositivo.');
+      marcarEstadoNube('error');
+      return;
+    }
     marcarEstadoNube('guardando');
-    db.collection('taller').doc(coleccion).set({items: datos, actualizado: Date.now()})
+    db.collection('taller').doc(coleccion).set(payload)
       .then(() => marcarEstadoNube('ok'))
       .catch(err => { console.error('Error guardando en Firebase ('+coleccion+'):', err); marcarEstadoNube('error'); });
   }
@@ -1095,7 +1104,25 @@
   let filtroGraficos = 'todo'; // todo | repuesto | filtro | bebidas
   let stockSearchTerm = '';
 
-  function saveMovimientos(){ localStorage.setItem(STOCK_MOV_KEY, JSON.stringify(movimientos)); nubeGuardar('movimientos', movimientos); }
+  // Guarda en localStorage con manejo de errores: si el almacenamiento está
+  // lleno (cuota excedida), avisa claramente en vez de perder el registro
+  // en silencio como ocurría antes.
+  let avisoCuotaMostrado = false;
+  function guardarLocal(key, datos){
+    try{
+      localStorage.setItem(key, JSON.stringify(datos));
+      return true;
+    }catch(err){
+      console.error('Error guardando en este dispositivo ('+key+'):', err);
+      if(!avisoCuotaMostrado){
+        avisoCuotaMostrado = true;
+        alert('⚠️ No se pudo guardar: el almacenamiento de este dispositivo está lleno.\n\nEsto pasa normalmente por acumular muchas fotos. Elimina registros/fotos antiguas que ya no necesites y vuelve a intentar.\n\nTu último cambio podría NO haberse guardado.');
+      }
+      return false;
+    }
+  }
+
+  function saveMovimientos(){ guardarLocal(STOCK_MOV_KEY, movimientos); nubeGuardar('movimientos', movimientos); }
   function registrarMovimiento(item, tipo, cantidad, motivo, cliente){
     if(!cantidad || cantidad <= 0) return null;
     const mov = {
@@ -1117,6 +1144,36 @@
 
   const $ = (id) => document.getElementById(id);
 
+  // ---------- Compresión de fotos ----------
+  // Las fotos de cámara pueden pesar varios MB. Sin comprimir, unas pocas
+  // fotos llenan el almacenamiento local (localStorage) y superan el límite
+  // de 1 MB por documento de Firestore, haciendo que el guardado falle
+  // en silencio. Por eso reducimos tamaño/calidad antes de guardar.
+  function comprimirImagen(dataUrl, callback, maxDim, calidad){
+    maxDim = maxDim || 900;
+    calidad = calidad || 0.62;
+    const img = new Image();
+    img.onload = () => {
+      let {width, height} = img;
+      if(width > maxDim || height > maxDim){
+        if(width > height){ height = Math.round(height * maxDim / width); width = maxDim; }
+        else { width = Math.round(width * maxDim / height); height = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      try{
+        callback(canvas.toDataURL('image/jpeg', calidad));
+      }catch(err){
+        console.warn('No se pudo comprimir la imagen, se usa el original:', err);
+        callback(dataUrl);
+      }
+    };
+    img.onerror = () => callback(dataUrl);
+    img.src = dataUrl;
+  }
+
   // ---------- Widget de foto reutilizable (cámara / archivo) ----------
   function crearFotoWidget({preview, camara, archivo, quitar}){
     const previewEl = $(preview), camaraEl = $(camara), archivoEl = $(archivo), quitarEl = $(quitar);
@@ -1135,7 +1192,7 @@
     function manejarArchivo(file){
       if(!file) return;
       const reader = new FileReader();
-      reader.onload = (e) => set(e.target.result);
+      reader.onload = (e) => comprimirImagen(e.target.result, (dataUrlComprimida) => set(dataUrlComprimida));
       reader.readAsDataURL(file);
     }
     camaraEl.addEventListener('change', (e) => manejarArchivo(e.target.files[0]));
@@ -1183,8 +1240,8 @@
   function todayHuman(){ return new Date().toLocaleDateString('es-PE', {day:'2-digit', month:'short', year:'numeric'}); }
   $('fecha').value = todayHuman();
 
-  function saveReg(){ localStorage.setItem(REG_KEY, JSON.stringify(registros)); nubeGuardar('registros', registros); }
-  function saveStock(){ localStorage.setItem(STOCK_KEY, JSON.stringify(stock)); nubeGuardar('stock', stock); }
+  function saveReg(){ guardarLocal(REG_KEY, registros); nubeGuardar('registros', registros); }
+  function saveStock(){ guardarLocal(STOCK_KEY, stock); nubeGuardar('stock', stock); }
 
   function diasRestantes(r){
     const limite = new Date(r.fechaIngreso + 'T00:00:00');
