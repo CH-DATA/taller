@@ -1366,12 +1366,25 @@
           <tr><th>Descripción</th><th class="num">Cant.</th><th class="num">P. Unit.</th><th class="num">Importe</th></tr>
         </thead>
         <tbody>
-          <tr>
-            <td>${escapeHtml(r.descripcion)}</td>
-            <td class="num">1</td>
-            <td class="num">S/. ${monto.toFixed(2)}</td>
-            <td class="num">S/. ${monto.toFixed(2)}</td>
-          </tr>
+          ${(() => {
+            const items = parsearServicios(r.descripcion);
+            if(items.length){
+              return items.map(it => `
+                <tr>
+                  <td>${escapeHtml(it.nombre)}</td>
+                  <td class="num">1</td>
+                  <td class="num">S/. ${it.precio.toFixed(2)}</td>
+                  <td class="num">S/. ${it.precio.toFixed(2)}</td>
+                </tr>`).join('');
+            }
+            return `
+              <tr>
+                <td>${escapeHtml(r.descripcion)}</td>
+                <td class="num">1</td>
+                <td class="num">S/. ${monto.toFixed(2)}</td>
+                <td class="num">S/. ${monto.toFixed(2)}</td>
+              </tr>`;
+          })()}
         </tbody>
       </table>
 
@@ -1410,13 +1423,11 @@
     ctx.closePath();
   }
 
-  function generarVolante(r){
-    const canvas = $('volanteCanvas');
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width, H = canvas.height;
+  function dibujarVolanteContenido(ctx, r, W, H, panelAlturaConocida){
     const {dias, limiteStr} = diasRestantes(r);
     const estado = estadoDe(dias);
     const colorEstado = estado === 'danger' ? '#e35b56' : (estado === 'warn' ? '#e29a1a' : '#2f9e63');
+    const servicios = parsearServicios(r.descripcion);
 
     // Fondo
     const bg = ctx.createLinearGradient(0, 0, W, H);
@@ -1452,10 +1463,16 @@
     ctx.fillText('🔧🚗', 56, 380);
 
     // Panel de datos
-    const px = 56, py = 430, pw = W - 112, ph = 630;
-    ctx.fillStyle = '#ffffff';
-    dibujarRoundRect(ctx, px, py, pw, ph, 20);
-    ctx.fill();
+    const px = 56, py = 430, pw = W - 112;
+
+    // Si ya sabemos cuánto mide el panel (2ª pasada), lo dibujamos ANTES del
+    // texto para que quede debajo. En la 1ª pasada (solo para medir) no se
+    // dibuja, ya que el lienzo es descartable.
+    if(panelAlturaConocida){
+      ctx.fillStyle = '#ffffff';
+      dibujarRoundRect(ctx, px, py, pw, panelAlturaConocida, 20);
+      ctx.fill();
+    }
 
     let y = py + 70;
     ctx.fillStyle = '#6b7383';
@@ -1474,26 +1491,57 @@
 
     if(r.vehiculo){
       y += 34;
-      ctx.fillStyle = '#8a92a5';
-      ctx.font = "500 22px 'Inter', sans-serif";
-      ctx.fillText('🚙 ' + r.vehiculo, px + 40, y);
+      ctx.fillStyle = '#6b7383';
+      ctx.font = "600 22px 'IBM Plex Mono', monospace";
+      ctx.fillText('MODELO ' + r.vehiculo.toUpperCase(), px + 40, y);
     }
 
-    y += 60;
+    y += 44;
     ctx.strokeStyle = '#dde2e9';
     ctx.beginPath(); ctx.moveTo(px + 40, y); ctx.lineTo(px + pw - 40, y); ctx.stroke();
 
-    y += 50;
+    y += 46;
     ctx.fillStyle = '#6b7383';
     ctx.font = "600 20px 'Inter', sans-serif";
-    ctx.fillText('SERVICIO', px + 40, y);
+    ctx.fillText(servicios.length > 1 ? 'SERVICIOS' : 'SERVICIO', px + 40, y);
     y += 36;
-    ctx.fillStyle = '#1c2333';
-    ctx.font = "500 26px 'Inter', sans-serif";
-    const descLineas = ajustarTexto(ctx, r.descripcion, pw - 80);
-    descLineas.slice(0, 2).forEach(linea => { ctx.fillText(linea, px + 40, y); y += 34; });
 
-    y += 26;
+    if(servicios.length){
+      servicios.forEach((s, i) => {
+        ctx.fillStyle = '#1c2333';
+        ctx.font = "600 23px 'Inter', sans-serif";
+        ctx.textAlign = 'left';
+        const nombreLineas = ajustarTexto(ctx, s.nombre, pw - 80 - 150);
+        ctx.fillText(nombreLineas[0] || '', px + 40, y);
+
+        ctx.fillStyle = '#8a92a5';
+        ctx.font = "600 21px 'IBM Plex Mono', monospace";
+        ctx.textAlign = 'right';
+        ctx.fillText('S/. ' + s.precio.toFixed(2), px + pw - 40, y);
+        ctx.textAlign = 'left';
+
+        if(nombreLineas.length > 1){
+          ctx.fillStyle = '#1c2333';
+          ctx.font = "500 20px 'Inter', sans-serif";
+          for(let k = 1; k < nombreLineas.length; k++){
+            y += 28;
+            ctx.fillText(nombreLineas[k], px + 40, y);
+          }
+        }
+        y += 34;
+        if(i < servicios.length - 1){
+          ctx.strokeStyle = '#eef1f5';
+          ctx.beginPath(); ctx.moveTo(px + 40, y - 20); ctx.lineTo(px + pw - 40, y - 20); ctx.stroke();
+        }
+      });
+    } else {
+      ctx.fillStyle = '#1c2333';
+      ctx.font = "500 26px 'Inter', sans-serif";
+      const descLineas = ajustarTexto(ctx, r.descripcion, pw - 80);
+      descLineas.slice(0, 4).forEach(linea => { ctx.fillText(linea, px + 40, y); y += 34; });
+    }
+
+    y += 20;
     ctx.fillStyle = colorEstado;
     dibujarRoundRect(ctx, px + 40, y - 30, 300, 46, 23);
     ctx.fill();
@@ -1519,6 +1567,8 @@
     ctx.fillText('S/. ' + Number(r.monto).toFixed(2), px + pw - 40, y + 8);
     ctx.textAlign = 'left';
 
+    const panelBottom = y + 40;
+
     // Pie
     ctx.fillStyle = '#f2a01f';
     ctx.font = "600 24px 'Inter', sans-serif";
@@ -1528,7 +1578,46 @@
     ctx.font = "500 22px 'Inter', sans-serif";
     ctx.fillText('¡Gracias por confiar en ORD CAR SERVICE!', 56, H - 60);
 
+    return panelBottom;
+  }
+
+  function generarVolante(r){
+    const canvas = $('volanteCanvas');
+    const W = 900;
+    const py = 430;
+
+    // 1ª pasada: dibuja sobre una altura provisional generosa solo para medir
+    // dónde termina el contenido (varía según la cantidad de servicios).
+    canvas.width = W; canvas.height = 2600;
+    let ctx = canvas.getContext('2d');
+    const panelBottom = dibujarVolanteContenido(ctx, r, W, 2600, null);
+
+    // 2ª pasada: redimensiona el canvas al alto real necesario y dibuja
+    // definitivamente (redimensionar reinicia el lienzo), ya con el panel
+    // blanco dimensionado correctamente detrás del texto.
+    const H = Math.max(1100, Math.round(panelBottom) + 260);
+    canvas.width = W; canvas.height = H;
+    ctx = canvas.getContext('2d');
+    dibujarVolanteContenido(ctx, r, W, H, Math.round(panelBottom) - py);
+
     return canvas.toDataURL('image/png');
+  }
+
+  // Detecta ítems tipo "NOMBRE DEL SERVICIO 45.00" dentro del texto libre de
+  // descripción, para poder mostrarlos como una lista ordenada (uno por línea,
+  // con su precio) en vez de un párrafo. Si no logra detectar al menos 2
+  // ítems, se deja el texto tal cual (comportamiento anterior).
+  function parsearServicios(texto){
+    const items = [];
+    if(!texto) return items;
+    const regex = /(.+?)\s+(\d+(?:\.\d{1,2}))(?=\s|$)/g;
+    let m;
+    while((m = regex.exec(texto)) !== null){
+      const nombre = m[1].trim();
+      const precio = parseFloat(m[2]);
+      if(nombre && !isNaN(precio)) items.push({nombre, precio});
+    }
+    return items.length >= 2 ? items : [];
   }
 
   function ajustarTexto(ctx, texto, maxAncho){
@@ -1554,7 +1643,11 @@
     const dataUrl = generarVolante(r);
     const {limiteStr} = diasRestantes(r);
     $('volanteImg').src = dataUrl;
-    const mensaje = `Hola ${r.nombre}, le saluda ORD CAR SERVICE 🔧🚗\nRecordatorio de su servicio: ${r.descripcion}\nPlaca: ${r.placa}${r.vehiculo ? '\nVehículo: ' + r.vehiculo : ''}\nVence: ${limiteStr}\nTotal: S/. ${Number(r.monto).toFixed(2)}\nEvite daños prematuros a su vehículo.\n¡Gracias por su preferencia!`;
+    const items = parsearServicios(r.descripcion);
+    const listaServicios = items.length
+      ? items.map(it => `• ${it.nombre} — S/. ${it.precio.toFixed(2)}`).join('\n')
+      : r.descripcion;
+    const mensaje = `Hola ${r.nombre}, le saluda ORD CAR SERVICE 🔧🚗\nRecordatorio de su servicio:\n${listaServicios}\nPlaca: ${r.placa}${r.vehiculo ? '\nVehículo: ' + r.vehiculo : ''}\nVence: ${limiteStr}\nTotal: S/. ${Number(r.monto).toFixed(2)}\nEvite daños prematuros a su vehículo.\n¡Gracias por su preferencia!`;
     volanteActual = {dataUrl, mensaje, telefono: (r.telefono || '').replace(/\D/g,''), nombreArchivo: `volante_${(r.placa || 'cliente').replace(/\s+/g,'')}.png`};
     $('volanteOverlay').classList.add('open');
   }
