@@ -491,7 +491,7 @@
   .reg-thumb{width:42px;height:42px;border-radius:8px;object-fit:cover;flex:0 0 auto;border:1px solid var(--border);}
   .reg-thumb-empty{display:flex;align-items:center;justify-content:center;background:var(--panel-2);font-size:16px;opacity:.5;}
   .cliente-dni{color:var(--muted);font-size:12px;}
-  .desc-cell{max-width:230px;color:var(--text);}
+  .desc-cell{max-width:170px;color:var(--text);font-size:12px;line-height:1.35;}
   .badge{
     display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:100px;
     font-size:12px;font-weight:600;white-space:nowrap;
@@ -712,7 +712,7 @@
 
       <div class="panel form-narrow">
         <h2 id="formTitle">Datos del servicio</h2>
-        <div class="desc">Se guarda con la fecha de hoy automáticamente.</div>
+        <div class="desc">Puedes elegir la fecha de ingreso (hoy, anterior o posterior).</div>
 
         <div id="modeBanner" class="mode-banner" style="display:none;">
           <div class="who">Servicio para <strong id="modeName"></strong> · <span class="plate" id="modePlate"></span></div>
@@ -738,6 +738,9 @@
             </div>
           </div>
 
+          <label for="placa">Placa</label>
+          <input id="placa" class="plate-input" placeholder="ABC-123" required>
+
           <label for="dni">DNI</label>
           <input id="dni" maxlength="8" placeholder="Ej. 45678912" required>
 
@@ -747,11 +750,11 @@
           <label for="telefono">Teléfono</label>
           <input id="telefono" type="tel" maxlength="9" placeholder="Ej. 987654321">
 
-          <label for="placa">Placa</label>
-          <input id="placa" class="plate-input" placeholder="ABC-123" required>
+          <label for="vehiculo">Modelo del vehículo</label>
+          <input id="vehiculo" placeholder="Ej. Pickup 4x4 Toyota Hilux">
 
           <label for="fecha">Fecha de ingreso</label>
-          <input id="fecha" disabled>
+          <input id="fecha" type="date" required>
 
           <label for="descripcion">Descripción del trabajo</label>
           <textarea id="descripcion" placeholder="Ej. Cambio de aceite y filtro, revisión de frenos" required></textarea>
@@ -767,7 +770,7 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary full">Guardar registro</button>
+          <button type="submit" class="btn btn-primary full" id="btnGuardarRegistro">Guardar registro</button>
         </form>
       </div>
     </section>
@@ -912,7 +915,7 @@
     </div>
   </div>
 </div>
-<canvas id="volanteCanvas" width="900" height="1160" style="display:none;"></canvas>
+<canvas id="volanteCanvas" width="900" height="1250" style="display:none;"></canvas>
 
 <!-- STOCK MODAL (agregar / editar ítem) -->
 <div class="overlay" id="stockModalOverlay">
@@ -1238,7 +1241,7 @@
   // ---------- Utilidades de fecha ----------
   function todayISO(){ return new Date().toISOString().slice(0,10); }
   function todayHuman(){ return new Date().toLocaleDateString('es-PE', {day:'2-digit', month:'short', year:'numeric'}); }
-  $('fecha').value = todayHuman();
+  $('fecha').value = todayISO();
 
   function saveReg(){ guardarLocal(REG_KEY, registros); nubeGuardar('registros', registros); }
   function saveStock(){ guardarLocal(STOCK_KEY, stock); nubeGuardar('stock', stock); }
@@ -1351,6 +1354,11 @@
           <div class="k">Teléfono</div>
           <div class="v">${escapeHtml(r.telefono || '—')}</div>
         </div>
+        ${r.vehiculo ? `
+        <div>
+          <div class="k">Vehículo</div>
+          <div class="v">${escapeHtml(r.vehiculo)}</div>
+        </div>` : ''}
       </div>
 
       <table>
@@ -1444,7 +1452,7 @@
     ctx.fillText('🔧🚗', 56, 380);
 
     // Panel de datos
-    const px = 56, py = 430, pw = W - 112, ph = 560;
+    const px = 56, py = 430, pw = W - 112, ph = 630;
     ctx.fillStyle = '#ffffff';
     dibujarRoundRect(ctx, px, py, pw, ph, 20);
     ctx.fill();
@@ -1463,6 +1471,13 @@
     ctx.fillStyle = '#6b7383';
     ctx.font = "600 24px 'IBM Plex Mono', monospace";
     ctx.fillText('PLACA ' + r.placa, px + 40, y);
+
+    if(r.vehiculo){
+      y += 34;
+      ctx.fillStyle = '#8a92a5';
+      ctx.font = "500 22px 'Inter', sans-serif";
+      ctx.fillText('🚙 ' + r.vehiculo, px + 40, y);
+    }
 
     y += 60;
     ctx.strokeStyle = '#dde2e9';
@@ -1505,6 +1520,10 @@
     ctx.textAlign = 'left';
 
     // Pie
+    ctx.fillStyle = '#f2a01f';
+    ctx.font = "600 24px 'Inter', sans-serif";
+    ctx.fillText('⚠️ Evite daños prematuros a su vehículo', 56, H - 100);
+
     ctx.fillStyle = '#c6cede';
     ctx.font = "500 22px 'Inter', sans-serif";
     ctx.fillText('¡Gracias por confiar en ORD CAR SERVICE!', 56, H - 60);
@@ -1535,7 +1554,7 @@
     const dataUrl = generarVolante(r);
     const {limiteStr} = diasRestantes(r);
     $('volanteImg').src = dataUrl;
-    const mensaje = `Hola ${r.nombre}, le saluda ORD CAR SERVICE 🔧🚗\nRecordatorio de su servicio: ${r.descripcion}\nPlaca: ${r.placa}\nVence: ${limiteStr}\nTotal: S/. ${Number(r.monto).toFixed(2)}\n¡Gracias por su preferencia!`;
+    const mensaje = `Hola ${r.nombre}, le saluda ORD CAR SERVICE 🔧🚗\nRecordatorio de su servicio: ${r.descripcion}\nPlaca: ${r.placa}${r.vehiculo ? '\nVehículo: ' + r.vehiculo : ''}\nVence: ${limiteStr}\nTotal: S/. ${Number(r.monto).toFixed(2)}\nEvite daños prematuros a su vehículo.\n¡Gracias por su preferencia!`;
     volanteActual = {dataUrl, mensaje, telefono: (r.telefono || '').replace(/\D/g,''), nombreArchivo: `volante_${(r.placa || 'cliente').replace(/\s+/g,'')}.png`};
     $('volanteOverlay').classList.add('open');
   }
@@ -1590,12 +1609,13 @@
   const searchInput = $('searchInput');
   const searchResults = $('searchResults');
   const dniInput = $('dni'), nombreInput = $('nombre'), telefonoInput = $('telefono'), placaInput = $('placa'),
-        descInput = $('descripcion'), plazoInput = $('plazo'), montoInput = $('monto');
+        descInput = $('descripcion'), plazoInput = $('plazo'), montoInput = $('monto'),
+        vehiculoInput = $('vehiculo');
   const fotoReg = crearFotoWidget({preview:'regFotoPreview', camara:'regFotoCamara', archivo:'regFotoArchivo', quitar:'btnQuitarRegFoto'});
 
   function clientesUnicos(){
     const map = new Map();
-    registros.forEach(r => map.set(r.placa.toUpperCase(), {dni:r.dni, nombre:r.nombre, telefono:r.telefono || '', placa:r.placa}));
+    registros.forEach(r => map.set(r.placa.toUpperCase(), {dni:r.dni, nombre:r.nombre, telefono:r.telefono || '', placa:r.placa, vehiculo:r.vehiculo || ''}));
     return [...map.values()];
   }
 
@@ -1622,10 +1642,13 @@
     searchInput.value = '';
   });
 
+  let editingRegistroId = null;
+
   function activarModoCliente(cliente){
     modeCliente = cliente;
     dniInput.value = cliente.dni; nombreInput.value = cliente.nombre; telefonoInput.value = cliente.telefono || ''; placaInput.value = cliente.placa;
-    dniInput.disabled = true; nombreInput.disabled = true; telefonoInput.disabled = true; placaInput.disabled = true;
+    vehiculoInput.value = cliente.vehiculo || '';
+    dniInput.disabled = true; nombreInput.disabled = true; telefonoInput.disabled = true; placaInput.disabled = true; vehiculoInput.disabled = true;
     descInput.value = ''; plazoInput.value = ''; montoInput.value = '';
     fotoReg.set(null);
     $('formTitle').textContent = 'Nuevo servicio';
@@ -1636,29 +1659,71 @@
   }
   function resetModoCliente(){
     modeCliente = null;
-    dniInput.disabled = false; nombreInput.disabled = false; telefonoInput.disabled = false; placaInput.disabled = false;
+    editingRegistroId = null;
+    dniInput.disabled = false; nombreInput.disabled = false; telefonoInput.disabled = false; placaInput.disabled = false; vehiculoInput.disabled = false;
     $('regForm').reset();
     fotoReg.set(null);
-    $('fecha').value = todayHuman();
+    $('fecha').value = todayISO();
     $('formTitle').textContent = 'Datos del servicio';
     $('modeBanner').style.display = 'none';
+    $('btnGuardarRegistro').textContent = 'Guardar registro';
   }
   $('btnResetMode').addEventListener('click', resetModoCliente);
 
+  // Autocompleta DNI / Nombre / Teléfono / Modelo al escribir una placa que
+  // ya existe en la base de datos (sin necesidad de usar el buscador de arriba).
+  placaInput.addEventListener('blur', () => {
+    if(modeCliente || editingRegistroId) return;
+    const val = placaInput.value.trim().toUpperCase();
+    if(!val) return;
+    const cliente = clientesUnicos().find(c => c.placa === val);
+    if(cliente) activarModoCliente(cliente);
+  });
+
+  // ---------- Editar un registro existente ----------
+  function editarRegistro(id){
+    const r = registros.find(x => x.id === id);
+    if(!r) return;
+    modeCliente = null;
+    editingRegistroId = id;
+    $('modeBanner').style.display = 'none';
+    dniInput.disabled = false; nombreInput.disabled = false; telefonoInput.disabled = false; placaInput.disabled = false; vehiculoInput.disabled = false;
+    placaInput.value = r.placa;
+    dniInput.value = r.dni;
+    nombreInput.value = r.nombre;
+    telefonoInput.value = r.telefono || '';
+    vehiculoInput.value = r.vehiculo || '';
+    $('fecha').value = r.fechaIngreso || todayISO();
+    descInput.value = r.descripcion;
+    plazoInput.value = r.plazo;
+    montoInput.value = r.monto;
+    fotoReg.set(r.foto || null);
+    $('formTitle').textContent = 'Editar servicio';
+    $('btnGuardarRegistro').textContent = 'Guardar cambios';
+    irAPagina('nuevo');
+  }
+
   $('regForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    registros.push({
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+    const datos = {
       dni: dniInput.value.trim(),
       nombre: nombreInput.value.trim(),
       telefono: telefonoInput.value.trim(),
       placa: placaInput.value.trim().toUpperCase(),
-      fechaIngreso: todayISO(),
+      vehiculo: vehiculoInput.value.trim(),
+      fechaIngreso: $('fecha').value || todayISO(),
       descripcion: descInput.value.trim(),
       plazo: Number(plazoInput.value),
       monto: Number(montoInput.value),
       foto: fotoReg.get()
-    });
+    };
+    if(editingRegistroId){
+      const idx = registros.findIndex(x => x.id === editingRegistroId);
+      if(idx !== -1) registros[idx] = {...registros[idx], ...datos};
+    } else {
+      datos.id = Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+      registros.push(datos);
+    }
     saveReg();
     resetModoCliente();
     irAPagina('registro');
@@ -1745,6 +1810,7 @@
           <div class="actions-cell">
             <button class="btn-icon" title="Ver factura" data-boleta="${r.id}">🧾</button>
             <button class="btn-icon whatsapp" title="Enviar volante por WhatsApp" data-volante="${r.id}">💬</button>
+            <button class="btn-icon" title="Editar" data-editar="${r.id}">✏️</button>
             <button class="btn-icon danger" title="Eliminar" data-del="${r.id}">✕</button>
           </div>
         </td>
@@ -1755,6 +1821,7 @@
 
     tbody.querySelectorAll('[data-boleta]').forEach(b => b.addEventListener('click', () => abrirBoleta(b.dataset.boleta)));
     tbody.querySelectorAll('[data-volante]').forEach(b => b.addEventListener('click', () => abrirVolante(b.dataset.volante)));
+    tbody.querySelectorAll('[data-editar]').forEach(b => b.addEventListener('click', () => editarRegistro(b.dataset.editar)));
     tbody.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => eliminarRegistro(b.dataset.del)));
   }
   document.querySelectorAll('#bdKpis [data-filtro]').forEach(btn => {
