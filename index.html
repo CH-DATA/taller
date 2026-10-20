@@ -371,7 +371,35 @@
   .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(16,26,46,.07);}
   .panel h2{font-size:22px;margin:0 0 4px;}
   .panel .desc{color:var(--muted);font-size:13px;margin-bottom:16px;}
-  .form-narrow{max-width:420px;}
+  .form-narrow{max-width:900px;}
+  .items-box{background:var(--panel-2);border:1px solid var(--border);border-left:4px solid var(--navy);border-radius:12px;padding:12px;}
+  .items-head{display:flex;gap:8px;padding:0 4px 6px 30px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .items-head span:first-child{flex:1;}
+  .items-head span:last-child{width:92px;}
+  .item-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .item-num{
+    width:22px;height:22px;flex:0 0 22px;border-radius:50%;background:var(--navy);color:#fff;
+    font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  }
+  .item-row input{padding:7px 10px;font-size:13.5px;background:#fff;}
+  .item-row .item-desc{flex:1;min-width:0;}
+  .item-row .item-precio{width:92px;flex:0 0 92px;font-family:'IBM Plex Mono',monospace;text-align:right;}
+  .item-row .btn-icon{width:28px;height:28px;flex:0 0 28px;font-size:12px;}
+  .btn-add-item-old{
+    display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:#fff;border:none;
+    border-radius:8px;padding:7px 13px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-top:2px;
+  }
+  .item-row .item-add{
+    width:28px;height:28px;flex:0 0 28px;border-radius:8px;border:none;cursor:pointer;
+    background:var(--navy);color:#fff;font-size:17px;line-height:1;font-weight:700;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
+  .item-row .item-add:hover{background:#1c2c4d;}
+  .item-row .item-del{background:none;border:none;color:var(--muted);width:20px;flex:0 0 20px;}
+  .item-row .item-del:hover{color:var(--danger);}
+  .items-head span:last-child{width:92px;}
+  .total-input{font-family:'IBM Plex Mono',monospace;font-weight:700;background:var(--navy);color:#fff;border-color:var(--navy);}
+  .total-input::placeholder{color:#9aa6bd;}
 
   .mode-banner{
     background:var(--panel-2);border:1px solid var(--accent);border-radius:10px;
@@ -491,7 +519,13 @@
   .reg-thumb{width:42px;height:42px;border-radius:8px;object-fit:cover;flex:0 0 auto;border:1px solid var(--border);}
   .reg-thumb-empty{display:flex;align-items:center;justify-content:center;background:var(--panel-2);font-size:16px;opacity:.5;}
   .cliente-dni{color:var(--muted);font-size:12px;}
-  .desc-cell{max-width:170px;color:var(--text);font-size:12px;line-height:1.35;}
+  .desc-cell{width:380px;max-width:380px;color:var(--text);font-size:12.5px;line-height:1.35;}
+  .desc-list{display:flex;flex-direction:column;}
+  .desc-item{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:5px 0;border-bottom:1px solid var(--border);}
+  .desc-item:first-child{padding-top:0;}
+  .desc-item:last-child{border-bottom:none;padding-bottom:0;}
+  .desc-item .dn{flex:1;min-width:0;}
+  .desc-item .dp{font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap;color:var(--navy);}
   .badge{
     display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:100px;
     font-size:12px;font-weight:600;white-space:nowrap;
@@ -501,7 +535,8 @@
   .badge.danger{background:var(--danger-bg);color:var(--danger);}
   .badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
   .fecha-limite{color:var(--muted);font-size:12px;margin-top:3px;}
-  .monto{font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  .monto{font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap;}
+  .monto-neto{color:var(--navy);font-weight:700;}
   .actions-cell{display:flex;gap:8px;}
   .empty-state{color:var(--muted);text-align:center;padding:40px 10px;font-size:14px;}
 
@@ -756,17 +791,32 @@
           <label for="fecha">Fecha de ingreso</label>
           <input id="fecha" type="date" required>
 
-          <label for="descripcion">Descripción del trabajo</label>
-          <textarea id="descripcion" placeholder="Ej. Cambio de aceite y filtro, revisión de frenos" required></textarea>
+          <label>Descripción del trabajo</label>
+          <div class="items-box">
+            <div class="items-head"><span>Servicio / producto</span><span>Precio S/.</span></div>
+            <div id="itemsLista"></div>
+          </div>
 
           <div class="row2">
             <div>
               <label for="plazo">Plazo (días)</label>
               <input id="plazo" type="number" min="0" placeholder="Ej. 3" required>
             </div>
+            <div></div>
+          </div>
+
+          <div class="row3 montos-row">
             <div>
               <label for="monto">Monto (S/.)</label>
-              <input id="monto" type="number" min="0" step="0.01" placeholder="Ej. 150.00" required>
+              <input id="monto" type="number" min="0" step="0.01" placeholder="Se suma solo" required>
+            </div>
+            <div>
+              <label for="descuento">Descuento (S/.) <span style="opacity:.7;">opcional</span></label>
+              <input id="descuento" type="number" min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div>
+              <label for="totalPagar">Monto − descuento</label>
+              <input id="totalPagar" class="total-input" readonly tabindex="-1" placeholder="0.00">
             </div>
           </div>
 
@@ -784,7 +834,7 @@
       <div class="panel table-panel" style="margin-top:0;">
         <table>
           <thead>
-            <tr><th>Cliente / Placa</th><th>Descripción</th><th>Plazo</th><th>Monto</th><th></th></tr>
+            <tr><th>Cliente / Placa</th><th>Descripción</th><th>Plazo</th><th>Monto</th><th>Monto − descuento</th><th></th></tr>
           </thead>
           <tbody id="tableBody"></tbody>
         </table>
@@ -861,7 +911,7 @@
       <div class="panel table-panel" style="margin-top:0;">
         <table>
           <thead>
-            <tr><th>Cliente / Placa</th><th>Descripción</th><th>Plazo</th><th>Monto</th><th></th></tr>
+            <tr><th>Cliente / Placa</th><th>Descripción</th><th>Plazo</th><th>Monto</th><th>Monto − descuento</th><th></th></tr>
           </thead>
           <tbody id="bdTableBody"></tbody>
         </table>
@@ -1262,6 +1312,15 @@
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  // Lista ordenada: servicio a la izquierda y precio al costado derecho
+  function descripcionHtml(r){
+    const items = parsearServicios(r.descripcion);
+    if(!items.length) return escapeHtml(r.descripcion);
+    return '<div class="desc-list">' + items.map(it =>
+      `<div class="desc-item"><span class="dn">${escapeHtml(it.nombre)}</span><span class="dp">${it.precio.toFixed(2)}</span></div>`
+    ).join('') + '</div>';
+  }
+
   function filaBadge(r){
     const {dias, limiteStr} = diasRestantes(r);
     const estado = estadoDe(dias);
@@ -1278,12 +1337,13 @@
           </div>
         </div>
       </td>
-      <td class="desc-cell">${escapeHtml(r.descripcion)}</td>
+      <td class="desc-cell">${descripcionHtml(r)}</td>
       <td>
         <span class="badge ${estado}"><span class="dot"></span>${textoEstado(dias)}</span>
         <div class="fecha-limite">Vence ${limiteStr}</div>
       </td>
-      <td class="monto">S/. ${Number(r.monto).toFixed(2)}</td>
+      <td class="monto">S/. ${Number(r.montoBruto !== undefined ? r.montoBruto : r.monto).toFixed(2)}</td>
+      <td class="monto monto-neto">S/. ${Number(r.monto).toFixed(2)}${Number(r.descuento) > 0 ? `<div class="fecha-limite">Desc. S/. ${Number(r.descuento).toFixed(2)}</div>` : ''}</td>
     `;
   }
 
@@ -1389,6 +1449,7 @@
       </table>
 
       <div class="totales">
+        ${Number(r.descuento) > 0 ? `<div class="line"><span>Descuento</span><span>- S/. ${Number(r.descuento).toFixed(2)}</span></div>` : ''}
         <div class="line"><span>Op. gravada</span><span>S/. ${subtotal.toFixed(2)}</span></div>
         <div class="line"><span>IGV (18%)</span><span>S/. ${igv.toFixed(2)}</span></div>
         <div class="total"><span>Total</span><span>S/. ${monto.toFixed(2)}</span></div>
@@ -1893,7 +1954,7 @@
   const searchInput = $('searchInput');
   const searchResults = $('searchResults');
   const dniInput = $('dni'), nombreInput = $('nombre'), telefonoInput = $('telefono'), placaInput = $('placa'),
-        descInput = $('descripcion'), plazoInput = $('plazo'), montoInput = $('monto'),
+        plazoInput = $('plazo'), montoInput = $('monto'), descuentoInput = $('descuento'), totalInput = $('totalPagar'),
         vehiculoInput = $('vehiculo');
   const fotoReg = crearFotoWidget({preview:'regFotoPreview', camara:'regFotoCamara', archivo:'regFotoArchivo', quitar:'btnQuitarRegFoto'});
 
@@ -1928,24 +1989,94 @@
 
   let editingRegistroId = null;
 
+  // ---------- Lista de servicios (descripción + precio, con botón +) ----------
+  const itemsLista = $('itemsLista');
+  function recalcularMonto(){
+    let suma = 0;
+    itemsLista.querySelectorAll('.item-precio').forEach(inp => {
+      const n = parseFloat(inp.value);
+      if(!isNaN(n)) suma += n;
+    });
+    if(suma > 0) montoInput.value = suma.toFixed(2);
+    recalcularTotal();
+  }
+  function recalcularTotal(){
+    const m = parseFloat(montoInput.value) || 0;
+    const d = parseFloat(descuentoInput.value) || 0;
+    totalInput.value = (montoInput.value === '' && descuentoInput.value === '') ? '' : Math.max(0, m - d).toFixed(2);
+  }
+  montoInput.addEventListener('input', recalcularTotal);
+  descuentoInput.addEventListener('input', recalcularTotal);
+  function renumerarItems(){
+    itemsLista.querySelectorAll('.item-row').forEach((row, i) => {
+      row.querySelector('.item-num').textContent = i + 1;
+      row.querySelector('.item-desc').required = (i === 0);
+      row.querySelector('.item-del').style.visibility = itemsLista.children.length > 1 ? 'visible' : 'hidden';
+    });
+  }
+  function agregarItem(desc, precio, despuesDe){
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.innerHTML = `
+      <span class="item-num"></span>
+      <input class="item-desc" placeholder="Ej. Cambio de aceite" autocomplete="off">
+      <input class="item-precio" type="number" min="0" step="0.01" placeholder="0.00">
+      <button type="button" class="item-add" title="Agregar otro servicio">+</button>
+      <button type="button" class="btn-icon item-del" title="Quitar fila">✕</button>`;
+    row.querySelector('.item-desc').value = desc || '';
+    row.querySelector('.item-precio').value = (precio === undefined || precio === null) ? '' : precio;
+    row.querySelector('.item-precio').addEventListener('input', recalcularMonto);
+    row.querySelector('.item-del').addEventListener('click', () => { row.remove(); renumerarItems(); recalcularMonto(); });
+    row.querySelector('.item-add').addEventListener('click', () => {
+      const nueva = agregarItem('', '', row);
+      nueva.querySelector('.item-desc').focus();
+    });
+    if(despuesDe && despuesDe.nextSibling) itemsLista.insertBefore(row, despuesDe.nextSibling);
+    else itemsLista.appendChild(row);
+    renumerarItems();
+    return row;
+  }
+  // Carga una descripción guardada (si trae precios por ítem los separa en filas)
+  function setItems(descripcion){
+    itemsLista.innerHTML = '';
+    const txt = String(descripcion || '').trim();
+    const items = txt ? parsearServicios(txt) : [];
+    if(items.length){ items.forEach(it => agregarItem(it.nombre, it.precio.toFixed(2))); }
+    else { agregarItem(txt, ''); }
+  }
+  // Devuelve la descripción unida: "CAMBIO DE ACEITE 45.00" por línea
+  function getDescripcion(){
+    const lineas = [];
+    itemsLista.querySelectorAll('.item-row').forEach(row => {
+      const d = row.querySelector('.item-desc').value.trim();
+      const n = parseFloat(row.querySelector('.item-precio').value);
+      if(!d) return;
+      lineas.push(isNaN(n) ? d : d + ' ' + n.toFixed(2));
+    });
+    return lineas.join('\n');
+  }
+  setItems('');
+
   function activarModoCliente(cliente){
     modeCliente = cliente;
     dniInput.value = cliente.dni; nombreInput.value = cliente.nombre; telefonoInput.value = cliente.telefono || ''; placaInput.value = cliente.placa;
     vehiculoInput.value = cliente.vehiculo || '';
     dniInput.disabled = true; nombreInput.disabled = true; telefonoInput.disabled = true; placaInput.disabled = true; vehiculoInput.disabled = true;
-    descInput.value = ''; plazoInput.value = ''; montoInput.value = '';
+    setItems(''); plazoInput.value = ''; montoInput.value = ''; descuentoInput.value = ''; totalInput.value = '';
     fotoReg.set(null);
     $('formTitle').textContent = 'Nuevo servicio';
     $('modeBanner').style.display = 'flex';
     $('modeName').textContent = cliente.nombre;
     $('modePlate').textContent = cliente.placa;
-    descInput.focus();
+    itemsLista.querySelector('.item-desc').focus();
   }
   function resetModoCliente(){
     modeCliente = null;
     editingRegistroId = null;
     dniInput.disabled = false; nombreInput.disabled = false; telefonoInput.disabled = false; placaInput.disabled = false; vehiculoInput.disabled = false;
     $('regForm').reset();
+    setItems('');
+    totalInput.value = '';
     fotoReg.set(null);
     $('fecha').value = todayISO();
     $('formTitle').textContent = 'Datos del servicio';
@@ -1978,9 +2109,11 @@
     telefonoInput.value = r.telefono || '';
     vehiculoInput.value = r.vehiculo || '';
     $('fecha').value = r.fechaIngreso || todayISO();
-    descInput.value = r.descripcion;
+    setItems(r.descripcion);
     plazoInput.value = r.plazo;
-    montoInput.value = r.monto;
+    montoInput.value = (r.montoBruto !== undefined) ? r.montoBruto : r.monto;
+    descuentoInput.value = r.descuento || '';
+    recalcularTotal();
     fotoReg.set(r.foto || null);
     $('formTitle').textContent = 'Editar servicio';
     $('btnGuardarRegistro').textContent = 'Guardar cambios';
@@ -1989,6 +2122,7 @@
 
   $('regForm').addEventListener('submit', (e) => {
     e.preventDefault();
+    const descCombinada = getDescripcion();
     const datos = {
       dni: dniInput.value.trim(),
       nombre: nombreInput.value.trim(),
@@ -1996,9 +2130,11 @@
       placa: placaInput.value.trim().toUpperCase(),
       vehiculo: vehiculoInput.value.trim(),
       fechaIngreso: $('fecha').value || todayISO(),
-      descripcion: descInput.value.trim(),
+      descripcion: descCombinada,
       plazo: Number(plazoInput.value),
-      monto: Number(montoInput.value),
+      montoBruto: Number(montoInput.value),
+      descuento: Number(descuentoInput.value) || 0,
+      monto: Math.max(0, Number(montoInput.value) - (Number(descuentoInput.value) || 0)),
       foto: fotoReg.get()
     };
     if(editingRegistroId){
